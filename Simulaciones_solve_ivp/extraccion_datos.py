@@ -1,5 +1,8 @@
 """
+extraccion_datos.py
+
 Funciones para la extracción de datos desde los archivos Excel de fermentaciones industriales de vino.
+
 Incluye:
 - Data puntual: Antecedentes, Laboratorio, Insumos Operacionales (+ lógica FDA compleja y Otros insumos)
 - Series temporales: Prov Sensores (tiempo en horas, densidad, temperaturas)
