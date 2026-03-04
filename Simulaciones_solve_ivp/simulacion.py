@@ -38,7 +38,7 @@ def data_for_simulation(data_class):
     # print(temp_prom)
     Nadd = data_class.profiles.Nadd_gL
     tspan = (t_rel[0], t_rel[-1])
-    print(f"Se utilizan {len(t_rel)} datos en el perfil de tiempo")
+    # print(f"Se utilizan {len(t_rel)} datos en el perfil de tiempo")
     return [x0, t_rel, temp_prom, Nadd, tspan]
 
 def check_N_pulse(Nadd: list, t_rel):

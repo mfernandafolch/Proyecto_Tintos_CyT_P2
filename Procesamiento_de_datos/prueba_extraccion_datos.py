@@ -55,6 +55,7 @@ def print_extraction_summary(data):
     print("\nSegunda adición:")
     print(f"  Volumen (L): {fda.vol_FDA_2_L}")
     print(f"  Dosis (g/hL): {fda.dosis_FDA_2_g_hL}")
+    print(f"  Densidad de adición: {fda.densidad_objetivo_FDA_2}")
     print(f"  YAN aporte (mg/L): {fda.yan_FDA_2_mgL}")
     print(f"  Fecha: {fda.fecha_FDA_2}")
     print(f"  Horas post 1ª adición: {fda.horas_post_FDA_2_h}")
@@ -87,7 +88,8 @@ def print_extraction_summary(data):
 
     print("\n" + "="*70)
 
-path_excel = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Datos históricos\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx"
+# path_excel = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx"
+path_excel = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\51.700 L\Data CS 25 SUC. IVAN VALDES estanque 239.xlsx"
 
 data = load_fermentation_data(path_excel)
 

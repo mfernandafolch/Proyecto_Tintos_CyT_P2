@@ -43,6 +43,9 @@ class FDAData:
     fecha_FDA_2: pd.Timestamp
     horas_post_FDA_2_h: float
 
+    # Densidad objetivo (gatillante) para la 2ª adición
+    densidad_objetivo_FDA_2: float  # np.nan si no existe
+
     @property
     def yan_FDA_mgL(self) -> float:
         return self.dosis_FDA_g_hL * 25 / 10
@@ -162,7 +165,6 @@ def extract_laboratorio(path_excel: str) -> LaboratorioData:
     yan0 = value_at_offset(df_lab, "YAN", col_offset=4, default=np.nan)      # mg/L
     alc = value_at_offset(df_lab, "Alcohol", col_offset=4, default=np.nan)  # ° o %
 
-    # 789.3 g/L ~ densidad etanol puro a 20°C
     E_final = (alc / 100.0) * 789.3 if not np.isnan(alc) else np.nan
     return LaboratorioData(yan0_mgL=yan0, alcohol_grado=alc, E_final_obs_gL=E_final)
 
@@ -219,14 +221,24 @@ def _read_fda_second_from_insumos(df_ins: pd.DataFrame):
         if (c + 4) < df_ins.shape[1]:
             dosis = fix_fda_dose(to_float(df_ins.iat[r, c + 4]), threshold=100.0)
 
-        # regla 120 L sin dosis -> 19.15 g/hL
         if (dosis <= 0) and (abs(vol_L - 120.0) < 1e-6):
             dosis = 19.15
 
         fecha_raw = df_ins.iat[r, c + 7] if (c + 7) < df_ins.shape[1] else None
         fecha = pd.to_datetime(fecha_raw, errors="coerce", dayfirst=True)
 
-        return {"row": r, "col": c, "unit": unit_raw, "vol_L": vol_L, "dosis_g_hL": dosis, "fecha": fecha}
+        # Densidad objetivo en columna +8 (c/r a FDA) para el caso Insumos Operacionales
+        dens_obj_raw = df_ins.iat[r, c + 8] if (c + 8) < df_ins.shape[1] else np.nan
+        dens_obj = to_float(dens_obj_raw)
+        if pd.isna(dens_obj) or dens_obj <= 0:
+            dens_obj = np.nan
+
+        return {
+            "row": r, "col": c, "unit": unit_raw,
+            "vol_L": vol_L, "dosis_g_hL": dosis, "fecha": fecha,
+            "densidad_objetivo": dens_obj,
+            "source": "insumos"
+        }
 
     return None
 
@@ -237,6 +249,7 @@ def _read_fda_second_from_otros(df_otro: pd.DataFrame):
         return None
 
     for (r, c) in matches:
+        # densidad objetivo (gatillante) en +3
         dens_raw = df_otro.iat[r, c + 3] if (c + 3) < df_otro.shape[1] else np.nan
         dens_val = to_float(dens_raw)
         if pd.isna(dens_val) or dens_val <= 0:
@@ -255,10 +268,16 @@ def _read_fda_second_from_otros(df_otro: pd.DataFrame):
         if abs(vol_L - 120.0) < 1e-6:
             dosis = 19.15
         else:
+            # Mantengo tu comportamiento (aunque ideal sería logger en vez de print)
             print(f"[ERROR] FDA secundaria en 'Otros insumos' con vol={vol_L} L (≠120). No se puede asignar dosis automáticamente.")
             dosis = 0.0
 
-        return {"row": r, "col": c, "unit": unit_raw, "vol_L": vol_L, "dosis_g_hL": dosis, "fecha": fecha, "densidad": dens_val}
+        return {
+            "row": r, "col": c, "unit": unit_raw,
+            "vol_L": vol_L, "dosis_g_hL": dosis, "fecha": fecha,
+            "densidad_objetivo": dens_val,  
+            "source": "otros"
+        }
 
     return None
 
@@ -276,7 +295,8 @@ def extract_fda_complex_from_excel(path_excel: str) -> FDAData:
         return FDAData(
             vol_FDA_L=0.0, dosis_FDA_g_hL=0.0, fecha_FDA=pd.NaT,
             vol_FDA_2_L=0.0, dosis_FDA_2_g_hL=0.0, fecha_FDA_2=pd.NaT,
-            horas_post_FDA_2_h=0.0
+            horas_post_FDA_2_h=0.0,
+            densidad_objetivo_FDA_2=np.nan 
         )
 
     second = _read_fda_second_from_insumos(df_ins)
@@ -291,7 +311,8 @@ def extract_fda_complex_from_excel(path_excel: str) -> FDAData:
         return FDAData(
             vol_FDA_L=vol_1, dosis_FDA_g_hL=dosis_1, fecha_FDA=fecha_1,
             vol_FDA_2_L=0.0, dosis_FDA_2_g_hL=0.0, fecha_FDA_2=pd.NaT,
-            horas_post_FDA_2_h=0.0
+            horas_post_FDA_2_h=0.0,
+            densidad_objetivo_FDA_2=np.nan
         )
 
     vol_2 = second.get("vol_L", 0.0)
@@ -300,10 +321,14 @@ def extract_fda_complex_from_excel(path_excel: str) -> FDAData:
 
     horas_post = compute_hours_diff_with_window(fecha_1, fecha_2, extra_window_h=12.0)
 
+    # Densidad objetivo de la segunda (puede venir nan)
+    dens_obj_2 = second.get("densidad_objetivo", np.nan)
+
     return FDAData(
         vol_FDA_L=vol_1, dosis_FDA_g_hL=dosis_1, fecha_FDA=fecha_1,
         vol_FDA_2_L=vol_2, dosis_FDA_2_g_hL=dosis_2, fecha_FDA_2=fecha_2,
-        horas_post_FDA_2_h=horas_post
+        horas_post_FDA_2_h=horas_post,
+        densidad_objetivo_FDA_2=dens_obj_2
     )
 
 
@@ -324,7 +349,6 @@ def extract_insumos_operacionales(path_excel: str) -> InsumosData:
     vol_agua = vol_keyword_1right("Agua vegetal")
     vol_conc = vol_keyword_1right("Mosto concentrado")
 
-    # Ácido tartárico: usar solo si unidad en +2 es litros
     try:
         r_tart, c_tart = find_first_match(df_ins, "Ácido tartárico")
         unit_raw = df_ins.iat[r_tart, c_tart + 2] if (c_tart + 2) < df_ins.shape[1] else ""
@@ -337,10 +361,8 @@ def extract_insumos_operacionales(path_excel: str) -> InsumosData:
     except Exception:
         vol_tart = 0.0
 
-    # FDA completo
     fda = extract_fda_complex_from_excel(path_excel)
 
-    # Levadura
     r_lev, c_lev = find_first_match(df_ins, "Levadura")
     vol_lev = to_float(df_ins.iat[r_lev, c_lev + 1]) if (c_lev + 1) < df_ins.shape[1] else 0.0
     vol_lev = 0.0 if (np.isnan(vol_lev) or vol_lev <= 0) else vol_lev
@@ -375,21 +397,14 @@ def extract_prov_sensores(path_excel: str) -> ProvSensoresData:
     col_sp = "temp_setpoint"
 
     df_sens = pd.read_excel(path_excel, sheet_name=sheet_sensores)
-
-    # Selección estricta como el notebook
     df_sens = df_sens[[col_time, col_dens, col_tm, col_ts, col_sp]].copy()
 
-    # Pasar todo a numérico (coerce)
     for c in df_sens.columns:
         df_sens[c] = pd.to_numeric(df_sens[c], errors="coerce")
 
-    # Limpiar y ordenar por tiempo
     df_sens = df_sens.dropna(subset=[col_time]).sort_values(col_time).reset_index(drop=True)
-
-    # Temp promedio como en notebook
     df_sens["temp_promedio_raw"] = df_sens[[col_tm, col_ts]].mean(axis=1)
 
-    # Convertir tiempo a horas (días * 24)
     t_h = df_sens[col_time].to_numpy(dtype=float) * 24.0
 
     return ProvSensoresData(
