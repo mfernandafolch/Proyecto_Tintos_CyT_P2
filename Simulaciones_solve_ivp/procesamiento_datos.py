@@ -409,7 +409,7 @@ def process_excel(
         mask = ~np.isnan(y_raw)
         return np.interp(t_opt_abs, t_h[mask], y_raw[mask]) if mask.sum() >= 2 else np.full_like(t_opt_abs, np.nan, dtype=float)
 
-    tm_opt = _eval_spline_or_interp(tm, spline_tm)
+    tm_opt = _eval_spline_or_interp(tm, spline_tm) 
     ts_opt = _eval_spline_or_interp(ts, spline_ts)
     tp_opt = _eval_spline_or_interp(tp, spline_tp)
 
@@ -424,10 +424,10 @@ def process_excel(
 
         densidad=np.asarray(dens_opt, dtype=float),
         azucar=np.asarray(azucar_opt, dtype=float),
-        temp_mosto=np.asarray(tm_opt, dtype=float),
-        temp_sombrero=np.asarray(ts_opt, dtype=float),
-        temp_promedio=np.asarray(tp_opt, dtype=float),
-        setpoint=np.asarray(setpoint_opt, dtype=float),
+        temp_mosto=np.asarray(tm_opt, dtype=float),     # En °C
+        temp_sombrero=np.asarray(ts_opt, dtype=float),  # En °C
+        temp_promedio=np.asarray(tp_opt, dtype=float),  # En °C
+        setpoint=np.asarray(setpoint_opt, dtype=float), # En °C
 
         Nadd_gL=np.asarray(Nadd_opt, dtype=float),
 
