@@ -118,7 +118,7 @@ def plot_simulation(res, path, scale_N=True):
     F = y[:,3]
     E = y[:,4]
 
-    plt.figure(figsize=(8,4))
+    plt.figure(figsize=(8,5))
 
     plt.plot(t, X, '-', label='$X$ (g/L)')
     plt.plot(t, N, '-', label='$N$ (mg/L)')

@@ -5,11 +5,12 @@ from procesamiento_datos import process_excel
 
 # path_excel = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx"
 # path_excel = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\51.700 L\Data CS 25 SUC. IVAN VALDES estanque 239.xlsx"
-path_excel = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx"
+# path_excel = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx"
+path_excel = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx"
 
 out = process_excel(
     path_excel=path_excel,
-    t_muestreo_h=3.0,   # cada cuántas horas muestrear
+    t_muestreo_h=1.0,   # cada cuántas horas muestrear
     t_end_h=None
 )
 
@@ -47,11 +48,11 @@ def _fmt(x, nd=2):
     return "NaN" if (x is None or np.isnan(x)) else f"{float(x):.{nd}f}"
 
 print(f"t_muestreo_h:                 {_fmt(meta.get('t_muestreo_h', np.nan), nd=2)} h")
-print(f"t_start_opt_abs_h:            {_fmt(meta.get('t_start_opt_abs_h', np.nan), nd=2)} h")
-print(f"FDA2_t_fecha_abs_h (Excel):   {_fmt(t_excel_abs, nd=2)} h")
-print(f"FDA2_t_corregido_abs_h:       {_fmt(t_corr_abs, nd=2)} h")
-print(f"Nadd aplicado EN GRILLA abs:  {_fmt(t_pulse_abs, nd=2)} h")
-print(f"Nadd aplicado EN GRILLA rel:  {_fmt(t_pulse_rel, nd=2)} h") 
+#print(f"t_start_opt_abs_h:            {_fmt(meta.get('t_start_opt_abs_h', np.nan), nd=2)} h")
+#print(f"FDA2_t_fecha_abs_h (Excel):   {_fmt(t_excel_abs, nd=2)} h")
+#print(f"FDA2_t_corregido_abs_h:       {_fmt(t_corr_abs, nd=2)} h")
+print(f"Nadd aplicado absoluto:        {_fmt(t_pulse_abs, nd=2)} h")
+print(f"Nadd aplicado c/r a fermentación:  {_fmt(t_pulse_rel, nd=2)} h") 
 print(f"Nadd index (en grilla):       {int(idx_pulse) if not np.isnan(idx_pulse) else -1}")
 print(f"Nadd valor (g/L):             {_fmt(val_pulse, nd=6)}")
 print("=" * 60)
@@ -60,6 +61,8 @@ print("=" * 60)
 # Series para graficar
 # =========================
 t_rel = np.asarray(out.profiles.t_rel_h, dtype=float)
+
+densidad = np.array(out.profiles.densidad, dtype=float)
 
 azucar_total = np.asarray(out.profiles.azucar, dtype=float)
 
@@ -76,6 +79,8 @@ mask_ts = ~np.isnan(t_rel) & ~np.isnan(temp_sombrero)
 mask_tp = ~np.isnan(t_rel) & ~np.isnan(temp_prom)
 mask_setp = ~np.isnan(t_rel) & ~np.isnan(temp_setpoint)
 mask_nadd = ~np.isnan(t_rel) & ~np.isnan(Nadd)
+mask_density = ~np.isnan(t_rel) & ~np.isnan(densidad)  # máscara para densidad
+
 
 # =========================
 # Plot: Azúcar + Temperaturas + Nadd (solo lo necesario)
@@ -129,3 +134,41 @@ plt.show()
 
 print(f"\nHay {len(t_rel)} puntos en el perfil.")
 print("=" * 60)
+
+
+# =========================
+# Segundo plot: densidad + Nadd
+# =========================
+fig, ax1 = plt.subplots(figsize=(11, 5))
+
+# Densidad en eje izquierdo
+ax1.plot(t_rel[mask_density], densidad[mask_density], "s-", color="tab:green",
+         label="Densidad (g/L)")
+# línea horizontal de referencia
+ax1.axhline(1070, color="red", linestyle="--", linewidth=1, label="Densidad 1070 g/L")
+ax1.set_xlabel("Tiempo desde inicio optimizado (h)")
+ax1.set_ylabel("Densidad (g/L)")
+ax1.grid(True)
+
+# línea de inicio optimizado y pulso como antes
+ax1.axvline(0.0, linestyle="--", linewidth=1, label="Inicio optimizado (t=0)")
+if not np.isnan(t_pulse_rel):
+    ax1.axvline(float(t_pulse_rel), linestyle=(0, (6, 2)),
+                linewidth=2.5, label="Nadd (pulso en grilla)")
+
+# Nadd en eje derecho (como stem)
+ax2 = ax1.twinx()
+if np.any(Nadd[mask_nadd] > 0):
+    ax2.stem(t_rel, Nadd, linefmt="k-", markerfmt="ko", basefmt=" ")
+ax2.set_ylabel("Nadd (g/L)")
+if np.any(Nadd[mask_nadd] > 0):
+    ax2.set_ylim(0, max(1e-6, 1.2 * float(np.nanmax(Nadd))))
+
+# legendas combinadas
+h1, l1 = ax1.get_legend_handles_labels()
+h2, l2 = ax2.get_legend_handles_labels()
+ax1.legend(h1 + h2, l1 + l2, loc="best", fontsize="small")
+
+plt.title("Densidad y pulso Nadd (t=0 inicio optimizado)")
+plt.tight_layout()
+plt.show()

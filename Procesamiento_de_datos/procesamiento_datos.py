@@ -469,8 +469,8 @@ def process_excel(
         strict_after_cross=True
     )
 
-    if (idx_event_used >= 0) and (not np.isnan(t_event_discreto_abs)):
-        print(f"[FDA2] Evento discreto en grilla: t={t_event_discreto_abs:.2f} h (rel={t_event_discreto_abs - t_start_opt:.2f} h) | Nadd={np.max(Nadd_opt):.6f} g/L\n")
+    #if (idx_event_used >= 0) and (not np.isnan(t_event_discreto_abs)):
+        #print(f"[FDA2] Evento discreto en grilla: t={t_event_discreto_abs:.2f} h (rel={t_event_discreto_abs - t_start_opt:.2f} h) | Nadd={np.max(Nadd_opt):.6f} g/L\n")
 
     # -------------------------
     # Evaluación perfiles en t_opt_abs
