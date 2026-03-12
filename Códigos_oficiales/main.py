@@ -1,5 +1,5 @@
 
-from simulacion import simulate_system, plot_simulation
+from simulacion import simulate_system_from_path, plot_simulation
 
 paths = [r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\51.700 L\Data CS 25 SUC. IVAN VALDES estanque 239.xlsx", 
          r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx",
@@ -13,7 +13,7 @@ params = [5.094427, 5.451988, 2.878541, 2.967765, 429.934043, 279.361563, 123.73
 
 soluciones = []
 for path in paths:
-    sol = simulate_system(path, params)
+    sol = simulate_system_from_path(path, params)
     soluciones.append(sol)
 
 for i in range(len(paths)):

@@ -26,21 +26,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-def obtain_info(excel_path: str, t_muestreo = 1.0):
+def data_for_simulation(excel_path: str, t_muestreo = 3.0):
     data_excel = process_excel(path_excel=excel_path, t_muestreo_h = t_muestreo)
-    return data_excel
-
-def data_for_simulation(data_class):
-    x0 = np.array([data_class.init.X0_gL, data_class.init.N0_gL, 
-             data_class.init.G0_gL, data_class.init.F0_gL, data_class.init.E0_gL])
-    t_rel = data_class.profiles.t_rel_h
-    # print(t_abs)
-    temp_prom = data_class.profiles.temp_promedio + 273.15 # Temp en K
-    # print(temp_prom)
-    Nadd = data_class.profiles.Nadd_gL
+    
+    x0 = np.array([data_excel.init.X0_gL, data_excel.init.N0_gL, 
+             data_excel.init.G0_gL, data_excel.init.F0_gL, data_excel.init.E0_gL])
+    
+    t_rel = data_excel.profiles.t_rel_h
+    
+    sugars_profile = data_excel.profiles.azucar
+   
+    temp_prom = data_excel.profiles.temp_promedio + 273.15 # Temp en K
+    
+    Nadd = data_excel.profiles.Nadd_gL
     tspan = (t_rel[0], t_rel[-1])
-    # print(f"Se utilizan {len(t_rel)} datos en el perfil de tiempo")
-    return [x0, t_rel, temp_prom, Nadd, tspan]
+    
+    Et_final = data_excel.init.E_final_obs_gL
+    
+    return [x0, t_rel, sugars_profile, temp_prom, Nadd, tspan, Et_final]
+    
 
 def check_N_pulse(Nadd: list, t_rel):
     N_pulse = False
@@ -70,14 +74,27 @@ def check_N_pulse(Nadd: list, t_rel):
 #     return area_gL, area_gL * 1000.0, float(np.max(nadd_fine))
 """
 
-def simulate_system(excel_path: str, params: list):
-    data_excel = obtain_info(excel_path)
-    init_simulation = data_for_simulation(data_excel) # [0: x0, 1: t_abs, 2: temp_prom, 3: Nadd, 4: tspan]
-    x0 = init_simulation[0]
-    t_rel = init_simulation[1]
-    temp_prom = init_simulation[2]
-    Nadd = init_simulation[3]
-    tspan = init_simulation[4]
+def simulate_system(x0, t_rel, temp, Nadd, tspan, params_list):
+    
+    sol = solve_ivp(fun = zenteno_ode_variable, t_span = tspan,  y0 = x0,  
+                   method = 'LSODA', t_eval = t_rel, 
+                   args = (params_list, t_rel, temp, Nadd))
+    
+    return sol
+
+def simulate_system_from_path(excel_path: str, params: list, t_muestreo):
+    
+    data_excel = process_excel(path_excel=excel_path, t_muestreo_h = t_muestreo)
+    
+    x0 = np.array([data_excel.init.X0_gL, data_excel.init.N0_gL, 
+             data_excel.init.G0_gL, data_excel.init.F0_gL, data_excel.init.E0_gL])
+    
+    t_rel = data_excel.profiles.t_rel_h
+    # print(t_abs)
+    temp_prom = data_excel.profiles.temp_promedio + 273.15 # Temp en K
+    # print(temp_prom)
+    Nadd = data_excel.profiles.Nadd_gL
+    tspan = (t_rel[0], t_rel[-1])
     
     # Chequear si hay pulso de nitrógeno
     # if check_N_pulse(Nadd, t_rel):
@@ -92,9 +109,8 @@ def simulate_system(excel_path: str, params: list):
     # Función "zenteno_ode_variable" tiene toda la lógica de aplicar el peak de nitrógeno 
     # como doble sigmoide si aplica el caso. 
     
-    sol = solve_ivp(fun = zenteno_ode_variable, t_span = tspan,  y0 = x0,  
-                   method = 'LSODA', t_eval = t_rel, 
-                   args = (params, t_rel, temp_prom, Nadd))
+    sol = simulate_system(x0=x0, t_rel=t_rel, temp=temp_prom, 
+                          Nadd=Nadd, tspan=tspan, params_list=params)
     
     return sol
     
@@ -138,5 +154,90 @@ def plot_simulation(res, path, scale_N=True):
     plt.legend()
     plt.grid(True)
 
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_simulation_with_data(res, path, sugars_profile=None, Et_final=None, scale_N=True):
+    """
+    Grafica las variables de una simulación de fermentación y compara
+    contra datos experimentales de azúcares totales y etanol final.
+
+    Parameters
+    ----------
+    res : object
+        Resultado de solve_ivp (con atributos res.t y res.y)
+    path : str
+        Path del archivo de datos. Se usa el nombre del archivo como título.
+    sugars_profile : array-like, optional
+        Perfil experimental de azúcares totales (G+F), evaluado en los mismos
+        tiempos de simulación.
+    Et_final : float, optional
+        Valor experimental del etanol final.
+    scale_N : bool, optional
+        Si True multiplica N por 1000 para pasar de g/L a mg/L.
+    """
+
+    # Extraer nombre del archivo sin extensión
+    title = os.path.splitext(os.path.basename(path))[0]
+
+    # Variables de simulación
+    t = res.t
+    t_dias = t / 24
+    y = res.y.T
+
+    X = y[:, 0]
+    N = y[:, 1] * 1000 if scale_N else y[:, 1]
+    G = y[:, 2]
+    F = y[:, 3]
+    E = y[:, 4]
+
+    sugars_sim = G + F
+
+    plt.figure(figsize=(9, 6))
+
+    # Curvas simuladas
+    plt.plot(t_dias, X, '-', label='$X$ (g/L)')
+    plt.plot(t_dias, N, '-', label='$N$ (mg/L)' if scale_N else '$N$ (g/L)')
+    #plt.plot(t_dias, G, '-', label='$G$ (g/L)')
+    #plt.plot(t_dias, F, '-', label='$F$ (g/L)')
+    plt.plot(t_dias, E, '-', label='$E$ (g/L)')
+
+    # Azúcares simulados
+    plt.plot(t_dias, sugars_sim, '--', linewidth=2, label='$G+F$ simulado (g/L)')
+
+    # Azúcares experimentales
+    if sugars_profile is not None:
+        sugars_profile = np.asarray(sugars_profile, dtype=float)
+
+        if len(sugars_profile) != len(t_dias):
+            print(
+                f"[WARNING] sugars_profile tiene largo {len(sugars_profile)} "
+                f"y la simulación tiene {len(t_dias)} tiempos. No se graficará."
+            )
+        else:
+            plt.plot(
+                t_dias,
+                sugars_profile,
+                'o',
+                markersize=4,
+                label='$G+F$ experimental (g/L)'
+            )
+
+    # Etanol final experimental
+    if Et_final is not None:
+        plt.plot(
+            t_dias[-1],
+            Et_final,
+            's',
+            markersize=7,
+            label='$E_{final}$ experimental (g/L)'
+        )
+
+    plt.title(f'Simulación de fermentación con solve_ivp\n{title}')
+    plt.ylabel('Concentración')
+    plt.xlabel('Tiempo (días)')
+    plt.legend()
+    plt.grid(True)
     plt.tight_layout()
     plt.show()
