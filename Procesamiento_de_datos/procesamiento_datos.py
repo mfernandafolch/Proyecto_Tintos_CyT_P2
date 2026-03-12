@@ -7,10 +7,9 @@ Incluye:
 - Cálculo de condiciones iniciales (X, N, G, F, E en g/L) y etanol final observado
 - Suavizado con splines usando ruido estimado vía Savitzky-Golay (como en el notebook)
 - Cálculo de t_start_opt (max entre primer dato de densidad y subida de setpoint 27–29°C)
-- Remuestreo cada t_muestreo_h (e.g., 8 h) y evaluación de perfiles suavizados
-- Construcción de vector Nadd (g/L): ceros salvo impulso (sesgado hacia adelante) en 2ª adición de FDA,
-  asegurando que ocurra DESPUÉS del cruce de densidad (<= densidad_objetivo o 1070 por defecto)
-- Entrega de dos vectores de tiempo: t_abs (absoluto) y t_rel (ajustado, inicia en 0)
+- Remuestreo cada t_muestreo_h y evaluación de perfiles suavizados
+- Construcción de vector Nadd (g/L): ceros salvo impulso discreto para 2ª adición de FDA
+- Entrega de dos vectores de tiempo: t_abs y t_rel
 """
 
 import numpy as np
@@ -36,12 +35,9 @@ class InitialConditions:
 
 @dataclass
 class ProcessedProfiles:
-    # tiempo absoluto (horas desde el origen del Excel)
     t_abs_h: np.ndarray
-    # tiempo ajustado (t=0 en t_start_opt)
     t_rel_h: np.ndarray
 
-    # perfiles procesados
     densidad: np.ndarray
     azucar: np.ndarray
     temp_mosto: np.ndarray
@@ -49,10 +45,8 @@ class ProcessedProfiles:
     temp_promedio: np.ndarray
     setpoint: np.ndarray
 
-    # adición de N (g/L) como impulso discreto
     Nadd_gL: np.ndarray
 
-    # info extra
     t_inicio_opt_h: float
 
 
@@ -100,7 +94,7 @@ def calc_conc_yan_inicial_mgL(
     vol_post_sangria_L: float,
     vol_total_corr_L: float,
     dosis_fda_g_hL: float,
-    fda_factor: float = 25/10
+    fda_factor: float = 25 / 10
 ) -> float:
     """
     Ajuste del YAN inicial considerando:
@@ -121,11 +115,33 @@ def calc_biomasa_inicial_gL(
     vol_total_corr_L: float,
     vol_levadura_L: float,
     poblacion_cel_mL: float,
+    tipo_inoculo: str,
+    vol_mosto_est_L: float,
     g_per_cell: float = 2.8571e-11,
-    default_X: float = 0.0595
+    default_X: float = 0.0595,
+    siembra_dosis_g_hL: float = 20.0
 ) -> float:
+    """
+    Calcula X0 según tipo de inóculo:
+
+    - Siembra:
+        Usa dosis por default de 20 g/hL.
+        Dividir por 100 -> 0.2 g/L
+
+    - Pie de cuba:
+        Logica basada en población celular y volumen de levadura.
+    """
     if vol_total_corr_L <= 0:
         return default_X
+
+    tipo = str(tipo_inoculo).strip().lower()
+
+    # Caso 1: Siembra
+    if "siembra" in tipo:
+        X0 = 20.0 / 100.0   # 20 g/hL = 0.2 g/L en el tanque
+        return X0 if (not np.isnan(X0) and X0 > 0) else default_X
+
+    # Caso 2: Pie de cuba (o cualquier otro caso)
     if (poblacion_cel_mL is None) or np.isnan(poblacion_cel_mL) or poblacion_cel_mL <= 0:
         return default_X
 
@@ -136,13 +152,9 @@ def calc_biomasa_inicial_gL(
 
 
 # =========================
-# Helpers: ruido (Savitzky-Golay) y splines
+# Helpers: ruido y splines
 # =========================
 def estimate_noise_residual(y, window: int, poly: int) -> float:
-    """
-    Ruido efectivo via Savitzky-Golay fuerte + sigma de residuos.
-    Funciona con Series o ndarray.
-    """
     try:
         from scipy.signal import savgol_filter
     except Exception:
@@ -168,14 +180,12 @@ def estimate_noise_residual(y, window: int, poly: int) -> float:
 
 
 def _spline_s_from_sigma(sigma: float, N: int, alpha: float) -> float:
-    """s = alpha * N * sigma^2 (notebook)."""
     if (sigma is None) or np.isnan(sigma) or N <= 0:
         return 0.0
     return float(max(alpha * N * (sigma ** 2), 0.0))
 
 
 def fit_spline(t_h: np.ndarray, y: np.ndarray, s: float, k: int = 2):
-    """Ajusta UnivariateSpline en puntos no-NaN."""
     from scipy.interpolate import UnivariateSpline
     t_h = np.asarray(t_h, dtype=float)
     y = np.asarray(y, dtype=float)
@@ -186,18 +196,11 @@ def fit_spline(t_h: np.ndarray, y: np.ndarray, s: float, k: int = 2):
 
 
 def _interp_fill_1d(y: np.ndarray) -> np.ndarray:
-    """Rellena NaNs por interpolación lineal (como notebook para setpoint)."""
     s = pd.Series(pd.to_numeric(y, errors="coerce"))
     return s.interpolate(limit_direction="both").to_numpy(dtype=float)
 
 
 def compute_t_start_opt(t_h: np.ndarray, dens: np.ndarray, setpoint: np.ndarray) -> float:
-    """
-    Replica tu lógica:
-    - first_density_hour: primer tiempo con densidad no-NaN
-    - sp_start_hour: tiempo donde setpoint entra al rango 27–29 y antes estaba <27 (primer "up")
-    - t_start_opt = max(first_density_hour, sp_start_hour)
-    """
     t_h = np.asarray(t_h, dtype=float)
     dens = np.asarray(dens, dtype=float)
     sp = np.asarray(setpoint, dtype=float)
@@ -224,7 +227,6 @@ def compute_t_start_opt(t_h: np.ndarray, dens: np.ndarray, setpoint: np.ndarray)
 
 
 def build_t_opt(t_start_opt: float, t_end: float, t_muestreo_h: float) -> np.ndarray:
-    """t_opt = arange(t_start_opt, t_end, t_muestreo) + asegura incluir t_end."""
     if t_muestreo_h <= 0:
         raise ValueError("t_muestreo_h debe ser > 0.")
     t_opt = np.arange(float(t_start_opt), float(t_end) + 1e-6, float(t_muestreo_h))
@@ -242,10 +244,6 @@ def find_first_time_below_threshold(
     threshold: float,
     dt_fine_h: float = 0.25
 ) -> float:
-    """
-    Busca el primer tiempo (abs, h) en [t_start, t_end] donde densidad_suavizada <= threshold.
-    Retorna np.nan si no se encuentra cruce o si spline_dens es None.
-    """
     if spline_dens is None:
         return np.nan
     if np.isnan(t_start) or np.isnan(t_end) or t_end <= t_start:
@@ -272,9 +270,6 @@ def find_first_time_below_threshold(
     return float(t_fine[int(idx[0])])
 
 
-# =========================
-# Nadd (impulso por 2ª FDA) - snap hacia adelante
-# =========================
 def build_Nadd_impulse_forward(
     t_opt_abs: np.ndarray,
     t_event_abs: float,
@@ -282,18 +277,6 @@ def build_Nadd_impulse_forward(
     t_cross_abs: float = np.nan,
     strict_after_cross: bool = True
 ) -> Tuple[np.ndarray, float, int]:
-    """
-    Nadd (g/L) como impulso discreto en t_opt_abs:
-
-    - todo 0
-    - ubica el impulso en el PRIMER t_opt_abs que sea >= t_event_abs (sesgo hacia adelante)
-    - además asegura estar DESPUÉS del cruce (si t_cross_abs existe):
-        strict_after_cross=True  -> t_discreto >  t_cross_abs
-        strict_after_cross=False -> t_discreto >= t_cross_abs
-
-    Retorna:
-      (Nadd_vector, t_event_discreto_abs, idx_event)
-    """
     t_opt_abs = np.asarray(t_opt_abs, dtype=float)
     Nadd = np.zeros_like(t_opt_abs, dtype=float)
 
@@ -321,11 +304,11 @@ def build_Nadd_impulse_forward(
 
 
 # =========================
-# PIPELINE MAESTRO
+# PIPELINE
 # =========================
 def process_excel(
     path_excel: str,
-    t_muestreo_h: float = 8.0,
+    t_muestreo_h: float = 1.0,
     noise_cfg: Optional[Dict[str, Dict[str, int]]] = None,
     spline_cfg: Optional[Dict[str, float]] = None,
     t_end_h: Optional[float] = None,
@@ -366,7 +349,9 @@ def process_excel(
     X0 = calc_biomasa_inicial_gL(
         vol_total_corr_L=vol_total,
         vol_levadura_L=raw.insumos.vol_levadura_L,
-        poblacion_cel_mL=raw.insumos.poblacion_levadura_cel_mL
+        poblacion_cel_mL=raw.insumos.poblacion_levadura_cel_mL,
+        tipo_inoculo=raw.insumos.tipo_inoculo,
+        vol_mosto_est_L=raw.antecedentes.vol_mosto_est_L
     )
 
     init = InitialConditions(
@@ -422,22 +407,15 @@ def process_excel(
     t_opt_rel = t_opt_abs - float(t_start_opt)
 
     # -------------------------
-    # FDA2 / Nadd: SIEMPRE evento = cruce + 3h (fecha solo diagnóstico)
+    # FDA2 / Nadd: evento = cruce + 3h
     # -------------------------
     yan_fda2_mgL = float(getattr(raw.insumos.fda, "yan_FDA_2_mgL", 0.0))
-    horas_post_fda2 = float(getattr(raw.insumos.fda, "horas_post_FDA_2_h", 0.0))
-
-    # diagnóstico: "tiempo según Excel" (si existiera)
-    t_fecha_abs = np.nan
-    if (not np.isnan(horas_post_fda2)) and (horas_post_fda2 > 0):
-        t_fecha_abs = float(t_start_opt) + float(horas_post_fda2)
 
     dens_obj = getattr(raw.insumos.fda, "densidad_objetivo_FDA_2", np.nan)
     threshold = float(dens_obj) if (dens_obj is not None and not np.isnan(dens_obj) and dens_obj > 0) else 1070.0
 
     t_cross_abs = np.nan
-    t_event_abs = np.nan  # continuo (cruce+3)
-    t_cross_plus_abs = np.nan
+    t_event_abs = np.nan
 
     if yan_fda2_mgL > 0:
         t_cross_abs = find_first_time_below_threshold(
@@ -449,18 +427,8 @@ def process_excel(
         )
 
         if not np.isnan(t_cross_abs):
-            t_cross_plus_abs = float(t_cross_abs) + 3.0
-            t_event_abs = float(t_cross_plus_abs)
+            t_event_abs = float(t_cross_abs) + 3.0
 
-            # print("[FDA2] REGLA: evento = cruce + 3h (SIEMPRE)")
-            # print(f"[FDA2] threshold={threshold:.2f} | t_cruce_abs={t_cross_abs:.2f} h | t_evento_abs={t_event_abs:.2f} h")
-            # if not np.isnan(t_fecha_abs):
-                # print(f"[FDA2] (diagnóstico) t_fecha_excel_abs={t_fecha_abs:.2f} h | delta_excel_vs_evento={t_fecha_abs - t_event_abs:.2f} h")
-            # print("")
-        # else:
-            # print("[FDA2] No se encontró cruce de densidad bajo el umbral -> no se puede ubicar FDA2/Nadd.\n")
-
-    # SNAP ADELANTE (y estrictamente después del cruce)
     Nadd_opt, t_event_discreto_abs, idx_event_used = build_Nadd_impulse_forward(
         t_opt_abs=t_opt_abs,
         t_event_abs=t_event_abs,
@@ -468,9 +436,6 @@ def process_excel(
         t_cross_abs=t_cross_abs,
         strict_after_cross=True
     )
-
-    #if (idx_event_used >= 0) and (not np.isnan(t_event_discreto_abs)):
-        #print(f"[FDA2] Evento discreto en grilla: t={t_event_discreto_abs:.2f} h (rel={t_event_discreto_abs - t_start_opt:.2f} h) | Nadd={np.max(Nadd_opt):.6f} g/L\n")
 
     # -------------------------
     # Evaluación perfiles en t_opt_abs
@@ -513,31 +478,23 @@ def process_excel(
     )
 
     # -------------------------
-    # META (mantengo lo otro + dejo solo lo útil de Nadd/FDA2)
+    # META reducida a lo útil 
     # -------------------------
     meta = {
         "vol_post_sangria_L": float(vol_post),
         "vol_total_corr_L": float(vol_total),
-        "yan_ini_mgL": float(yan_ini_mgL) if not np.isnan(yan_ini_mgL) else np.nan,
-        "sigma_temp": float(sigma_temp) if not np.isnan(sigma_temp) else np.nan,
-        "sigma_dens": float(sigma_dens) if not np.isnan(sigma_dens) else np.nan,
-        "s_temp": float(s_temp),
-        "s_dens": float(s_dens),
+        "tipo_inoculo": str(raw.insumos.tipo_inoculo),
         "t_muestreo_h": float(t_muestreo_h),
         "t_start_opt_abs_h": float(t_start_opt),
 
-        # --- Nadd útil (discreto en grilla) ---
         "Nadd_event_index": float(idx_event_used),
         "Nadd_event_time_abs_h": float(t_event_discreto_abs) if not np.isnan(t_event_discreto_abs) else np.nan,
-        # ESTE ES EL QUE IMPORTA:
         "Nadd_event_time_rel_h": float(t_event_discreto_abs - t_start_opt) if not np.isnan(t_event_discreto_abs) else np.nan,
         "Nadd_value_gL": float(np.max(Nadd_opt)) if idx_event_used >= 0 else 0.0,
 
-        # --- decisión FDA2 (mínimo) ---
         "FDA2_threshold_densidad": float(threshold),
         "FDA2_t_cruce_abs_h": float(t_cross_abs) if not np.isnan(t_cross_abs) else np.nan,
-        "FDA2_t_evento_corregido_abs_h": float(t_event_abs) if not np.isnan(t_event_abs) else np.nan,  # cruce+3h (continuo)
-        "FDA2_t_fecha_abs_h": float(t_fecha_abs) if not np.isnan(t_fecha_abs) else np.nan,              # solo diagnóstico
+        "FDA2_t_evento_corregido_abs_h": float(t_event_abs) if not np.isnan(t_event_abs) else np.nan,
     }
 
     return ProcessedFermentation(init=init, profiles=profiles, meta=meta)

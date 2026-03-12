@@ -18,14 +18,15 @@ en modelo_dinamico.py.
 """
 
 from procesamiento_datos import process_excel
-from modelo_dinamico import zenteno_ode_variable, nadd_smooth_from_events, extract_nadd_events
+# from modelo_dinamico import zenteno_ode_variable, nadd_smooth_from_events, extract_nadd_events
+from modelo_dinamico import zenteno_ode_variable
 
 from scipy.integrate import solve_ivp
 import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-def obtain_info(excel_path: str, t_muestreo = 3.0):
+def obtain_info(excel_path: str, t_muestreo = 1.0):
     data_excel = process_excel(path_excel=excel_path, t_muestreo_h = t_muestreo)
     return data_excel
 
@@ -45,28 +46,29 @@ def check_N_pulse(Nadd: list, t_rel):
     N_pulse = False
     for i in range(len(Nadd)): 
         if Nadd[i] > 0.0:
-            print(f"Adición de nitrógeno en t = {t_rel[i]:.2f} h: Nadd = {Nadd[i]:.3f} g/L*h")
+            # print(f"Adición de nitrógeno en t = {t_rel[i]:.2f} h: Nadd = {Nadd[i]:.3f} g/L*h")
             N_pulse = True
     return N_pulse
 
-def area_under_nadd_continuous(t_eval, events, duration_h=1.0, k=12.0, n=5000):
-    """Calcula el área bajo Nadd(t) cuando el pulso se define como función continua
-    (doble sigmoide), independiente del tamaño del paso de tiempo.
-    Returns
-    -------
-    area_gL : float
-        N total agregado (g/L)
-    area_mgL : float
-        N total agregado (mg/L)
-    peak : float
-        valor máximo de Nadd (g/L/h)"""
+"""
+# def area_under_nadd_continuous(t_eval, events, duration_h=1.0, k=12.0, n=5000):
+#     #Calcula el área bajo Nadd(t) cuando el pulso se define como función continua
+#     #(doble sigmoide), independiente del tamaño del paso de tiempo.
+#     #Returns
+#     #-------
+#     #area_gL : float
+#     #    N total agregado (g/L)
+#     #area_mgL : float
+#     #    N total agregado (mg/L)
+#     #peak : float
+#     #   valor máximo de Nadd (g/L/h)
     
-    t_fine = np.linspace(t_eval[0], t_eval[-1], n)
-    nadd_fine = np.array([nadd_smooth_from_events(t, events, duration_h, k)
-        for t in t_fine])
-    area_gL = float(np.trapz(nadd_fine, t_fine))
-    return area_gL, area_gL * 1000.0, float(np.max(nadd_fine))
-
+#     t_fine = np.linspace(t_eval[0], t_eval[-1], n)
+#     nadd_fine = np.array([nadd_smooth_from_events(t, events, duration_h, k)
+#         for t in t_fine])
+#     area_gL = float(np.trapz(nadd_fine, t_fine))
+#     return area_gL, area_gL * 1000.0, float(np.max(nadd_fine))
+"""
 
 def simulate_system(excel_path: str, params: list):
     data_excel = obtain_info(excel_path)
@@ -78,14 +80,17 @@ def simulate_system(excel_path: str, params: list):
     tspan = init_simulation[4]
     
     # Chequear si hay pulso de nitrógeno
-    if check_N_pulse(Nadd, t_rel):
-        print("Si hay pulso de Nitrógeno")
+    # if check_N_pulse(Nadd, t_rel):
+        # print("Si hay pulso de Nitrógeno")
         # Chequear si está bien aplicado el pulso de nitrógeno (peak y área bajo la curva)
-        events = extract_nadd_events(t_rel, Nadd)
-        area_gL, area_mgL, peak = area_under_nadd_continuous(t_rel, events)
-        print(f"[CHECK Nadd CONT] peak = {peak:.6f} g/L/h | area = {area_gL:.6f} g/L ({area_mgL:.1f} mg/L)")
-    else:
-        print("No hay pulso de Nitrógeno")
+        # events = extract_nadd_events(t_rel, Nadd)
+        # area_gL, area_mgL, peak = area_under_nadd_continuous(t_rel, events)
+        # print(f"[CHECK Nadd CONT] peak = {peak:.6f} g/L/h | area = {area_gL:.6f} g/L ({area_mgL:.1f} mg/L)")
+    # else:
+        # print("No hay pulso de Nitrógeno")
+        
+    # Función "zenteno_ode_variable" tiene toda la lógica de aplicar el peak de nitrógeno 
+    # como doble sigmoide si aplica el caso. 
     
     sol = solve_ivp(fun = zenteno_ode_variable, t_span = tspan,  y0 = x0,  
                    method = 'LSODA', t_eval = t_rel, 
@@ -110,6 +115,7 @@ def plot_simulation(res, path, scale_N=True):
 
     # Variables
     t = res.t
+    t_dias = t / 24
     y = res.y.T
 
     X = y[:,0]
@@ -120,15 +126,15 @@ def plot_simulation(res, path, scale_N=True):
 
     plt.figure(figsize=(8,5))
 
-    plt.plot(t, X, '-', label='$X$ (g/L)')
-    plt.plot(t, N, '-', label='$N$ (mg/L)')
-    plt.plot(t, G, '-', label='$G$ (g/L)')
-    plt.plot(t, F, '-', label='$F$ (g/L)')
-    plt.plot(t, E, '-', label='$E$ (g/L)')
+    plt.plot(t_dias, X, '-', label='$X$ (g/L)')
+    plt.plot(t_dias, N, '-', label='$N$ (mg/L)')
+    plt.plot(t_dias, G, '-', label='$G$ (g/L)')
+    plt.plot(t_dias, F, '-', label='$F$ (g/L)')
+    plt.plot(t_dias, E, '-', label='$E$ (g/L)')
 
     plt.title(f'Simulación de fermentación con solve_ivp\n{title}')
     plt.ylabel('Concentración')
-    plt.xlabel('Tiempo (h)')
+    plt.xlabel('Tiempo (días)')
     plt.legend()
     plt.grid(True)
 

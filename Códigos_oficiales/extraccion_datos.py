@@ -65,6 +65,7 @@ class InsumosData:
 
     vol_levadura_L: float
     poblacion_levadura_cel_mL: float
+    tipo_inoculo: str   # NUEVO
 
     fda: FDAData
 
@@ -170,7 +171,7 @@ def extract_laboratorio(path_excel: str) -> LaboratorioData:
 
 
 # =========================
-# FDA COMPLETO (según tu lógica)
+# FDA COMPLETO (según la lógica)
 # =========================
 def _read_fda_primary_from_insumos(df_ins: pd.DataFrame):
     matches = sorted(find_all_matches(df_ins, "FDA"), key=lambda rc: rc[0])
@@ -221,8 +222,8 @@ def _read_fda_second_from_insumos(df_ins: pd.DataFrame):
         if (c + 4) < df_ins.shape[1]:
             dosis = fix_fda_dose(to_float(df_ins.iat[r, c + 4]), threshold=100.0)
 
-        if (dosis <= 0) and (abs(vol_L - 120.0) < 1e-6):
-            dosis = 19.15
+        if dosis <= 0:
+            dosis = 19.5
 
         fecha_raw = df_ins.iat[r, c + 7] if (c + 7) < df_ins.shape[1] else None
         fecha = pd.to_datetime(fecha_raw, errors="coerce", dayfirst=True)
@@ -264,18 +265,14 @@ def _read_fda_second_from_otros(df_otro: pd.DataFrame):
 
         fecha_raw = df_otro.iat[r, c + 5] if (c + 5) < df_otro.shape[1] else None
         fecha = pd.to_datetime(fecha_raw, errors="coerce", dayfirst=True)
-
-        if abs(vol_L - 120.0) < 1e-6:
-            dosis = 19.15
-        else:
-            # Mantengo tu comportamiento (aunque ideal sería logger en vez de print)
-            print(f"[ERROR] FDA secundaria en 'Otros insumos' con vol={vol_L} L (≠120). No se puede asignar dosis automáticamente.")
-            dosis = 0.0
-
+        
+        # Dosis se asigna automáticamente porque no trae este dato la planilla
+        dosis = 19.5 
+    
         return {
             "row": r, "col": c, "unit": unit_raw,
             "vol_L": vol_L, "dosis_g_hL": dosis, "fecha": fecha,
-            "densidad_objetivo": dens_val,  
+            "densidad_objetivo": dens_val,
             "source": "otros"
         }
 
@@ -296,7 +293,7 @@ def extract_fda_complex_from_excel(path_excel: str) -> FDAData:
             vol_FDA_L=0.0, dosis_FDA_g_hL=0.0, fecha_FDA=pd.NaT,
             vol_FDA_2_L=0.0, dosis_FDA_2_g_hL=0.0, fecha_FDA_2=pd.NaT,
             horas_post_FDA_2_h=0.0,
-            densidad_objetivo_FDA_2=np.nan 
+            densidad_objetivo_FDA_2=np.nan
         )
 
     second = _read_fda_second_from_insumos(df_ins)
@@ -321,7 +318,6 @@ def extract_fda_complex_from_excel(path_excel: str) -> FDAData:
 
     horas_post = compute_hours_diff_with_window(fecha_1, fecha_2, extra_window_h=12.0)
 
-    # Densidad objetivo de la segunda (puede venir nan)
     dens_obj_2 = second.get("densidad_objetivo", np.nan)
 
     return FDAData(
@@ -367,6 +363,11 @@ def extract_insumos_operacionales(path_excel: str) -> InsumosData:
     vol_lev = to_float(df_ins.iat[r_lev, c_lev + 1]) if (c_lev + 1) < df_ins.shape[1] else 0.0
     vol_lev = 0.0 if (np.isnan(vol_lev) or vol_lev <= 0) else vol_lev
 
+    tipo_inoc_raw = df_ins.iat[r_lev, c_lev + 9] if (c_lev + 9) < df_ins.shape[1] else ""
+    tipo_inoculo = str(tipo_inoc_raw).strip()
+    if tipo_inoculo.lower() == "nan":
+        tipo_inoculo = ""
+
     pop_raw = to_float(df_ins.iat[r_lev, c_lev + 10]) if (c_lev + 10) < df_ins.shape[1] else 0.0
     if np.isnan(pop_raw) or pop_raw <= 0:
         pop = 0.0
@@ -381,6 +382,7 @@ def extract_insumos_operacionales(path_excel: str) -> InsumosData:
         vol_conc_L=vol_conc,
         vol_levadura_L=vol_lev,
         poblacion_levadura_cel_mL=pop,
+        tipo_inoculo=tipo_inoculo,   # NUEVO
         fda=fda
     )
 
@@ -418,7 +420,7 @@ def extract_prov_sensores(path_excel: str) -> ProvSensoresData:
 
 
 # =========================
-# FUNCIÓN MAESTRA
+# FUNCIÓN
 # =========================
 def load_fermentation_data(path_excel: str) -> FermentationData:
     ant = extract_antecedentes(path_excel)
