@@ -3,12 +3,14 @@
 
 from simulacion import data_for_simulation, simulate_system, plot_simulation_with_data
 from prueba_opt import MODEL_1750, MODEL_1860, MODEL_2264, run_estimation, PARAM_ORDER
+from prueba_opt import params_dict_to_vector, objective_function, prepare_model_structure
+import numpy as np
 
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\51.700 L\Data CS 25 SUC. IVAN VALDES estanque 239.xlsx"
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx"
-path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx"
+# path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx"
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 31.xlsx"
-# path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx"
+path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx"
 
 # ------------------------------------------------------------
 # Extraer datos una sola vez
@@ -27,7 +29,7 @@ Et_final = data_excel[6]
 # Elegir estructura de parámetros y método
 # ------------------------------------------------------------
 model_structure = MODEL_2264
-method = "pso"   # "de", "da", "pso"
+method = "da_ls"   # "de", "da", "pso", "de_ls", "da_ls", "pso_ls"
 
 # ------------------------------------------------------------
 # Ejecutar optimización
@@ -48,20 +50,62 @@ result, best_params = run_estimation(
 # Mostrar resultados
 # ------------------------------------------------------------
 print("\n=== RESULTADO FINAL ===")
+
 if method in ["de", "da"]:
     print("Mejor costo:", result.fun)
-else:
+
+elif method == "pso":
     print("Mejor costo:", result["fun"])
 
-print("Mejores parámetros:")
-best_params_list = []
-for k, v in best_params.items():
-    print(f"{k}: {v}")
-    
-for i in PARAM_ORDER:
-    for k, v in best_params.items():
-        if k == i:
-            best_params_list.append(v)
+elif method in ["de_ls", "da_ls", "pso_ls"]:
+    if method in ["de_ls", "da_ls"]:
+        theta_global = result["global_result"].x
+    else:
+        theta_global = result["global_result"]["x"]
+
+    theta_local = result["x"]
+
+    fixed_params, free_names, _ = prepare_model_structure(model_structure)
+
+    global_cost_obj = objective_function(
+        theta_global,
+        free_names,
+        fixed_params,
+        x0,
+        t_rel,
+        temp,
+        Nadd,
+        t_span,
+        sugars_profile,
+        Et_final
+    )
+
+    local_cost_obj = objective_function(
+        theta_local,
+        free_names,
+        fixed_params,
+        x0,
+        t_rel,
+        temp,
+        Nadd,
+        t_span,
+        sugars_profile,
+        Et_final
+    )
+
+    print("Costo etapa global (objective_function):", global_cost_obj)
+    print("Costo final refinado (objective_function):", local_cost_obj)
+    print("Cost interno de least_squares:", 0.5 * np.sum(result["local_result"].fun**2))
+
+else:
+    print("No se reconoce el formato de salida del método.")
+
+best_params_list = params_dict_to_vector(best_params, PARAM_ORDER)
+
+print("\nVector ordenado de parámetros:")
+for name, value in zip(PARAM_ORDER, best_params_list):
+    print(f"{name}: {value}")
+print("Número de parámetros:", len(best_params_list))
     
     
 res_opt = simulate_system(x0, t_rel, temp, Nadd, t_span, best_params_list)
