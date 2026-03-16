@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import differential_evolution, dual_annealing, least_squares
+from mealpy import PSO, FloatVar
 
 from simulacion import simulate_system
 
@@ -194,8 +195,10 @@ def bounds_to_arrays(bounds):
 
 def simulate_from_theta(theta, free_names, fixed_params, x0, t_rel, temp, Nadd, t_span):
     """
-    Ejecuta la simulación a partir de theta y devuelve azúcares simulados
-    y etanol final simulado.
+    Ejecuta la simulación a partir de theta y devuelve:
+    - resultado solve_ivp
+    - azúcares simulados
+    - etanol final simulado
     """
     params_dict = build_full_params(theta, free_names, fixed_params)
     params_vector = params_dict_to_vector(params_dict, PARAM_ORDER)
@@ -220,6 +223,139 @@ def simulate_from_theta(theta, free_names, fixed_params, x0, t_rel, temp, Nadd, 
     return sim, sugars_sim, Et_final_sim
 
 
+def compute_objective_breakdown(
+    theta,
+    free_names,
+    fixed_params,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    penalty=1e12
+):
+    """
+    Calcula por separado residuos y aportes al costo.
+
+    Returns
+    -------
+    dict
+    """
+    try:
+        _, sugars_sim, Et_final_sim = simulate_from_theta(
+            theta=theta,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span
+        )
+
+        sugars_profile = np.asarray(sugars_profile, dtype=float)
+
+        if len(sugars_sim) != len(sugars_profile):
+            raise ValueError(
+                f"Largo incompatible entre azúcares simulados ({len(sugars_sim)}) "
+                f"y perfil experimental ({len(sugars_profile)})"
+            )
+
+        if not (np.all(np.isfinite(sugars_sim)) and np.isfinite(Et_final_sim)):
+            return {
+                "sugar_residual_vector": np.full(len(sugars_profile), np.nan),
+                "ethanol_residual": np.nan,
+                "sugar_error_sum": penalty,
+                "sugar_error_mean": penalty,
+                "ethanol_error": penalty,
+                "objective_total": penalty,
+                "sugars_sim": sugars_sim,
+                "Et_final_sim": Et_final_sim,
+            }
+
+        sugar_res = sugars_sim - sugars_profile
+        etoh_res = Et_final_sim - Et_final_exp
+
+        sugar_error_sum = np.sum(sugar_res ** 2)
+        sugar_error_mean = sugar_error_sum / len(sugars_sim)
+        ethanol_error = etoh_res ** 2
+        objective_total = sugar_error_mean + ethanol_error
+
+        return {
+            "sugar_residual_vector": sugar_res,
+            "ethanol_residual": float(etoh_res),
+            "sugar_error_sum": float(sugar_error_sum),
+            "sugar_error_mean": float(sugar_error_mean),
+            "ethanol_error": float(ethanol_error),
+            "objective_total": float(objective_total),
+            "sugars_sim": sugars_sim,
+            "Et_final_sim": float(Et_final_sim),
+        }
+
+    except Exception as e:
+        print(f"[WARNING] Falló compute_objective_breakdown con theta={theta}. Error: {e}")
+        return {
+            "sugar_residual_vector": np.full(len(sugars_profile), np.nan),
+            "ethanol_residual": np.nan,
+            "sugar_error_sum": penalty,
+            "sugar_error_mean": penalty,
+            "ethanol_error": penalty,
+            "objective_total": penalty,
+            "sugars_sim": None,
+            "Et_final_sim": np.nan,
+        }
+
+
+def print_iteration_breakdown(
+    theta,
+    free_names,
+    fixed_params,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    prefix=""
+):
+    """
+    Imprime un resumen corto del desglose de la función objetivo
+    para una solución theta dada.
+    """
+    breakdown = compute_objective_breakdown(
+        theta=theta,
+        free_names=free_names,
+        fixed_params=fixed_params,
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        t_span=t_span,
+        sugars_profile=sugars_profile,
+        Et_final_exp=Et_final_exp
+    )
+
+    sugar_res = breakdown["sugar_residual_vector"]
+
+    if sugar_res is None or np.any(~np.isfinite(sugar_res)):
+        print(f"{prefix} costo={breakdown['objective_total']:.6f} | breakdown inválido")
+        return
+
+    sugar_rmse = np.sqrt(np.mean(sugar_res ** 2))
+
+    print(
+        f"{prefix} "
+        f"costo={breakdown['objective_total']:.6f} | "
+        f"azucar={breakdown['sugar_error_mean']:.6f} | "
+        f"etanol={breakdown['ethanol_error']:.6f} | "
+        f"res_E={breakdown['ethanol_residual']:.6f} | "
+        f"RMSE_az={sugar_rmse:.6f}"
+    )
+
+
 # ============================================================
 # 5. FUNCIÓN OBJETIVO ESCALAR
 # ============================================================
@@ -240,43 +376,21 @@ def objective_function(
     """
     Función objetivo escalar para métodos globales.
     """
-    try:
-        _, sugars_sim, Et_final_sim = simulate_from_theta(
-            theta=theta,
-            free_names=free_names,
-            fixed_params=fixed_params,
-            x0=x0,
-            t_rel=t_rel,
-            temp=temp,
-            Nadd=Nadd,
-            t_span=t_span
-        )
+    breakdown = compute_objective_breakdown(
+        theta=theta,
+        free_names=free_names,
+        fixed_params=fixed_params,
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        t_span=t_span,
+        sugars_profile=sugars_profile,
+        Et_final_exp=Et_final_exp,
+        penalty=penalty
+    )
 
-        if len(sugars_sim) != len(sugars_profile):
-            raise ValueError(
-                f"Largo incompatible entre azúcares simulados ({len(sugars_sim)}) "
-                f"y perfil experimental ({len(sugars_profile)})"
-            )
-
-        if not (np.all(np.isfinite(sugars_sim)) and np.isfinite(Et_final_sim)):
-            return penalty
-        
-        sugar_res = (sugars_sim - sugars_profile)
-        etoh_res = (Et_final_sim - Et_final_exp)
-        
-        sugar_error = np.sum(sugar_res ** 2)
-        etoh_error = etoh_res ** 2 # Solo un término para etanol final
-
-        J = sugar_error / len(sugars_sim) + etoh_error
-
-        if not np.isfinite(J):
-            return penalty
-
-        return float(J)
-
-    except Exception as e:
-        print(f"[WARNING] Falló simulación con theta={theta}. Error: {e}")
-        return penalty
+    return breakdown["objective_total"]
 
 
 # ============================================================
@@ -300,7 +414,7 @@ def residuals_function(
     Función de residuos para least_squares, consistente con objective_function.
     """
     try:
-        _, sugars_sim, Et_final_sim = simulate_from_theta(
+        breakdown = compute_objective_breakdown(
             theta=theta,
             free_names=free_names,
             fixed_params=fixed_params,
@@ -308,26 +422,26 @@ def residuals_function(
             t_rel=t_rel,
             temp=temp,
             Nadd=Nadd,
-            t_span=t_span
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            penalty=penalty
         )
 
-        if len(sugars_sim) != len(sugars_profile):
-            raise ValueError(
-                f"Largo incompatible entre azúcares simulados ({len(sugars_sim)}) "
-                f"y perfil experimental ({len(sugars_profile)})"
-            )
+        sugar_res = breakdown["sugar_residual_vector"]
+        etoh_res = breakdown["ethanol_residual"]
 
-        if not (np.all(np.isfinite(sugars_sim)) and np.isfinite(Et_final_sim)):
+        if np.any(~np.isfinite(sugar_res)) or not np.isfinite(etoh_res):
             return np.full(len(sugars_profile) + 1, penalty, dtype=float)
 
-        n = len(sugars_sim)
+        n = len(sugar_res)
 
-        # Importante: dividir por sqrt(n) para que la suma de cuadrados
-        # reproduzca el promedio usado en objective_function
-        sugar_res = (sugars_sim - sugars_profile) / np.sqrt(n)
-        etoh_res = np.array([Et_final_sim - Et_final_exp], dtype=float)
+        # coherente con objective_function:
+        # sum((sugar_res/sqrt(n))^2) = sugar_error_mean
+        sugar_res_ls = sugar_res / np.sqrt(n)
+        etoh_res_ls = np.array([etoh_res], dtype=float)
 
-        residuals = np.concatenate([sugar_res, etoh_res])
+        residuals = np.concatenate([sugar_res_ls, etoh_res_ls])
 
         if not np.all(np.isfinite(residuals)):
             return np.full(len(sugars_profile) + 1, penalty, dtype=float)
@@ -337,6 +451,7 @@ def residuals_function(
     except Exception as e:
         print(f"[WARNING] Falló residuals_function con theta={theta}. Error: {e}")
         return np.full(len(sugars_profile) + 1, penalty, dtype=float)
+
 
 # ============================================================
 # 7. REFINAMIENTO LOCAL
@@ -359,11 +474,34 @@ def run_least_squares_refinement(
 ):
     """
     Refinamiento local usando least_squares.
+    Muestra desglose por evaluación.
     """
     lb, ub = bounds_to_arrays(bounds)
 
+    ls_state = {"eval": 0}
+
+    def residuals_wrapper(theta, *args):
+        ls_state["eval"] += 1
+
+        # prefix = f"[LS] Eval {ls_state['eval']:03d} |"
+        # print_iteration_breakdown(
+        #     theta=theta,
+        #     free_names=free_names,
+        #     fixed_params=fixed_params,
+        #     x0=x0,
+        #     t_rel=t_rel,
+        #     temp=temp,
+        #     Nadd=Nadd,
+        #     t_span=t_span,
+        #     sugars_profile=sugars_profile,
+        #     Et_final_exp=Et_final_exp,
+        #     prefix=prefix
+        # )
+
+        return residuals_function(theta, *args)
+
     result = least_squares(
-        fun=residuals_function,
+        fun=residuals_wrapper,
         x0=theta_init,
         bounds=(lb, ub),
         args=(
@@ -402,27 +540,31 @@ def run_differential_evolution(
     t_span,
     sugars_profile,
     Et_final_exp,
-    maxiter=12,
-    popsize=6,
+    maxiter=14,
+    popsize=8,
     seed=50
 ):
     """
-    DE con exigencia reducida y mostrando avance.
+    DE mostrando avance y desglose por iteración.
     """
+    state = {"iter": 0}
+
     def de_callback(xk, convergence):
-        score = objective_function(
-            xk,
-            free_names,
-            fixed_params,
-            x0,
-            t_rel,
-            temp,
-            Nadd,
-            t_span,
-            sugars_profile,
-            Et_final_exp
+        state["iter"] += 1
+        prefix = f"[DE] Iter {state['iter']:03d} | conv={convergence:.6f} |"
+        print_iteration_breakdown(
+            theta=xk,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            prefix=prefix
         )
-        print(f"[DE] Mejor costo actual: {score:.6f} | convergence={convergence:.6f}")
 
     result = differential_evolution(
         func=objective_function,
@@ -463,17 +605,30 @@ def run_dual_annealing(
     t_span,
     sugars_profile,
     Et_final_exp,
-    maxiter=30,
+    maxiter=60,
     seed=50
 ):
     """
-    DA con exigencia reducida y mostrando avance por callback.
+    DA mostrando avance y desglose por callback.
     """
     da_state = {"iter": 0}
 
     def da_callback(x, f, context):
         da_state["iter"] += 1
-        print(f"[DA] Callback {da_state['iter']} - costo={f:.6f} - context={context}")
+        prefix = f"[DA] Iter {da_state['iter']:03d} | context={context} |"
+        print_iteration_breakdown(
+            theta=x,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            prefix=prefix
+        )
         return False
 
     result = dual_annealing(
@@ -513,11 +668,11 @@ def run_pso(
     t_span,
     sugars_profile,
     Et_final_exp,
-    n_particles=15,
+    n_particles=25,
     n_iter=100,
-    w=0.7,
-    c1=1.5,
-    c2=1.5,
+    w=0.4, # 0.7
+    c1=2.05,  # 1.5
+    c2=2.05,  # 1.5
     seed=123
 ):
     rng = np.random.default_rng(seed)
@@ -574,7 +729,21 @@ def run_pso(
             positions[i] = np.clip(positions[i], lb, ub)
 
         history.append(gbest_score)
-        print(f"Iteración PSO {it+1}/{n_iter} - Mejor costo: {gbest_score:.6f}")
+
+        prefix = f"[PSO] Iter {it+1:03d}/{n_iter} |"
+        print_iteration_breakdown(
+            theta=gbest_position,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            prefix=prefix
+        )
 
     best_params = build_full_params(gbest_position, free_names, fixed_params)
 
@@ -582,6 +751,66 @@ def run_pso(
         "x": gbest_position,
         "fun": gbest_score,
         "history": history
+    }
+
+    return result, best_params
+
+def run_mealpy_pso(
+    free_names,
+    fixed_params,
+    bounds,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    epoch=25,
+    pop_size=100
+    ):
+    
+    """
+    PSO usando MEALPY.
+    """
+
+    lb = [b[0] for b in bounds]
+    ub = [b[1] for b in bounds]
+
+    def mealpy_obj(solution):
+        theta = np.asarray(solution, dtype=float)
+        return objective_function(
+            theta=theta,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp
+        )
+
+    problem = {
+        "bounds": FloatVar(lb=lb, ub=ub, name="theta"),
+        "minmax": "min",
+        "obj_func": mealpy_obj,
+    }
+
+    model = PSO.OriginalPSO(epoch=epoch, pop_size=pop_size, seed=123)
+
+    g_best = model.solve(problem)
+
+    best_theta = np.asarray(g_best.solution, dtype=float)
+    best_cost = float(g_best.target.fitness)
+    best_params = build_full_params(best_theta, free_names, fixed_params)
+
+    result = {
+        "x": best_theta,
+        "fun": best_cost,
+        "history": getattr(model, "history", None),
+        "mealpy_best": g_best,
     }
 
     return result, best_params
@@ -743,6 +972,55 @@ def run_pso_then_ls(
         "fun": 0.5 * np.sum(result_ls.fun**2)
     }, best_params
 
+def run_mealpy_pso_then_ls(
+    free_names,
+    fixed_params,
+    bounds,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp
+):
+    print("\n=== ETAPA GLOBAL: MEALPY PSO ===")
+    result_mpso, _ = run_mealpy_pso(
+        free_names=free_names,
+        fixed_params=fixed_params,
+        bounds=bounds,
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        t_span=t_span,
+        sugars_profile=sugars_profile,
+        Et_final_exp=Et_final_exp
+    )
+
+    print("\n=== ETAPA LOCAL: LEAST SQUARES ===")
+    result_ls, best_params = run_least_squares_refinement(
+        theta_init=result_mpso["x"],
+        free_names=free_names,
+        fixed_params=fixed_params,
+        bounds=bounds,
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        t_span=t_span,
+        sugars_profile=sugars_profile,
+        Et_final_exp=Et_final_exp,
+        verbose=2,
+        max_nfev=20
+    )
+
+    return {
+        "global_result": result_mpso,
+        "local_result": result_ls,
+        "x": result_ls.x,
+        "fun": 0.5 * np.sum(result_ls.fun**2)
+    }, best_params
 
 # ============================================================
 # 10. FUNCIÓN GENERAL
@@ -851,6 +1129,35 @@ def run_estimation(
             sugars_profile=sugars_profile,
             Et_final_exp=Et_final_exp
         )
+        
+    elif method == "mealpy_pso":
+        return run_mealpy_pso(
+            free_names=free_names,
+            fixed_params=fixed_params,
+            bounds=bounds,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp
+        )
+
+    elif method == "mealpy_pso_ls":
+        return run_mealpy_pso_then_ls(
+            free_names=free_names,
+            fixed_params=fixed_params,
+            bounds=bounds,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp
+        )
 
     else:
-        raise ValueError("Método no reconocido. Usa 'de', 'da', 'pso', 'de_ls', 'da_ls' o 'pso_ls'.")
+        raise ValueError("Método no reconocido. Usa 'de', 'da', 'pso', 'mealpy_pso', "
+        "'de_ls', 'da_ls', 'pso_ls' o 'mealpy_pso_ls'.")

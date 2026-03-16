@@ -82,7 +82,7 @@ def simulate_system(x0, t_rel, temp, Nadd, tspan, params_list):
     
     return sol
 
-def simulate_system_from_path(excel_path: str, params: list, t_muestreo):
+def simulate_system_from_path(excel_path: str, params: list, t_muestreo = 3.0):
     
     data_excel = process_excel(path_excel=excel_path, t_muestreo_h = t_muestreo)
     
@@ -187,24 +187,24 @@ def plot_simulation_with_data(res, path, sugars_profile=None, Et_final=None, sca
     y = res.y.T
 
     X = y[:, 0]
-    N = y[:, 1] * 1000 if scale_N else y[:, 1]
+    N_mgL = y[:, 1] * 1000 if scale_N else y[:, 1]
+    N_gL = y[:, 1]
     G = y[:, 2]
     F = y[:, 3]
     E = y[:, 4]
 
     sugars_sim = G + F
 
-    plt.figure(figsize=(9, 6))
+    # Formato vertical para mejorar legibilidad de ambos paneles.
+    fig, axes = plt.subplots(2, 1, figsize=(9, 10.5), sharex=True)
+    ax1, ax2 = axes
 
-    # Curvas simuladas
-    plt.plot(t_dias, X, '-', label='$X$ (g/L)')
-    plt.plot(t_dias, N, '-', label='$N$ (mg/L)' if scale_N else '$N$ (g/L)')
-    #plt.plot(t_dias, G, '-', label='$G$ (g/L)')
-    #plt.plot(t_dias, F, '-', label='$F$ (g/L)')
-    plt.plot(t_dias, E, '-', label='$E$ (g/L)')
-
-    # Azúcares simulados
-    plt.plot(t_dias, sugars_sim, '--', linewidth=2, label='$G+F$ simulado (g/L)')
+    # Gráfico 1: todo excepto biomasa. N se mantiene en mg/L.
+    ax1.plot(t_dias, N_mgL, '-', label='$N$ (mg/L)' if scale_N else '$N$ (g/L)')
+    ax1.plot(t_dias, G, '-', label='$G$ (g/L)')
+    ax1.plot(t_dias, F, '-', label='$F$ (g/L)')
+    ax1.plot(t_dias, E, '-', label='$E$ (g/L)')
+    ax1.plot(t_dias, sugars_sim, '--', linewidth=2, label='$G+F$ simulado (g/L)')
 
     # Azúcares experimentales
     if sugars_profile is not None:
@@ -216,7 +216,7 @@ def plot_simulation_with_data(res, path, sugars_profile=None, Et_final=None, sca
                 f"y la simulación tiene {len(t_dias)} tiempos. No se graficará."
             )
         else:
-            plt.plot(
+            ax1.plot(
                 t_dias,
                 sugars_profile,
                 'o',
@@ -226,7 +226,7 @@ def plot_simulation_with_data(res, path, sugars_profile=None, Et_final=None, sca
 
     # Etanol final experimental
     if Et_final is not None:
-        plt.plot(
+        ax1.plot(
             t_dias[-1],
             Et_final,
             's',
@@ -234,10 +234,20 @@ def plot_simulation_with_data(res, path, sugars_profile=None, Et_final=None, sca
             label='$E_{final}$ experimental (g/L)'
         )
 
-    plt.title(f'Simulación de fermentación con solve_ivp\n{title}')
-    plt.ylabel('Concentración')
-    plt.xlabel('Tiempo (días)')
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
+    ax1.set_title('Variables sin biomasa')
+    ax1.set_ylabel('Concentración')
+    ax1.legend()
+    ax1.grid(True)
+
+    # Gráfico 2: biomasa y nitrógeno, ambos en g/L.
+    ax2.plot(t_dias, X, 'k-', label='$X$ (g/L)')
+    ax2.plot(t_dias, N_gL, '-', label='$N$ (g/L)')
+    ax2.set_title('Biomasa y nitrógeno (g/L)')
+    ax2.set_ylabel('Concentración (g/L)')
+    ax2.set_xlabel('Tiempo (días)')
+    ax2.legend()
+    ax2.grid(True)
+
+    fig.suptitle(f'Simulación de fermentación con solve_ivp\n{title}')
+    fig.tight_layout(rect=(0.03, 0.03, 0.98, 0.95), h_pad=2.2)
     plt.show()

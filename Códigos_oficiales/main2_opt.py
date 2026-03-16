@@ -5,12 +5,20 @@ from simulacion import data_for_simulation, simulate_system, plot_simulation_wit
 from prueba_opt import MODEL_1750, MODEL_1860, MODEL_2264, run_estimation, PARAM_ORDER
 from prueba_opt import params_dict_to_vector, objective_function, prepare_model_structure
 import numpy as np
+import time
+
+
+def format_elapsed(seconds):
+    """Devuelve un string legible para tiempos de ejecución."""
+    minutes = int(seconds // 60)
+    rem_seconds = seconds - 60 * minutes 
+    return f"{minutes} min {rem_seconds:.2f} s" if minutes else f"{rem_seconds:.2f} s"
 
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\51.700 L\Data CS 25 SUC. IVAN VALDES estanque 239.xlsx"
-# path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx"
+path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx"
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx"
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 31.xlsx"
-path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx"
+# path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx"
 
 # ------------------------------------------------------------
 # Extraer datos una sola vez
@@ -29,11 +37,12 @@ Et_final = data_excel[6]
 # Elegir estructura de parámetros y método
 # ------------------------------------------------------------
 model_structure = MODEL_2264
-method = "da_ls"   # "de", "da", "pso", "de_ls", "da_ls", "pso_ls"
+method = "pso"   # "de", "da", "pso", "de_ls", "da_ls", "pso_ls"
 
 # ------------------------------------------------------------
 # Ejecutar optimización
 # ------------------------------------------------------------
+opt_start = time.perf_counter()
 result, best_params = run_estimation(
     method=method,
     model_structure=model_structure,
@@ -45,6 +54,7 @@ result, best_params = run_estimation(
     sugars_profile=sugars_profile,
     Et_final_exp=Et_final
 )
+opt_elapsed = time.perf_counter() - opt_start
 
 # ------------------------------------------------------------
 # Mostrar resultados
@@ -99,6 +109,8 @@ elif method in ["de_ls", "da_ls", "pso_ls"]:
 
 else:
     print("No se reconoce el formato de salida del método.")
+
+print(f"Tiempo total de optimización ({method}): {format_elapsed(opt_elapsed)}")
 
 best_params_list = params_dict_to_vector(best_params, PARAM_ORDER)
 

@@ -1,0 +1,115 @@
+=== ETAPA GLOBAL PSO ===
+[PSO] Iter 001100  costo=1888.961296  azucar=1767.620201  etanol=121.341095  res_E=-11.015493  RMSE_az=42.043076
+[PSO] Iter 002100  costo=1888.961296  azucar=1767.620201  etanol=121.341095  res_E=-11.015493  RMSE_az=42.043076
+[PSO] Iter 003100  costo=757.017879  azucar=757.006417  etanol=0.011462  res_E=0.107061  RMSE_az=27.513750
+[PSO] Iter 004100  costo=543.394085  azucar=222.552093  etanol=320.841992  res_E=-17.912063  RMSE_az=14.918180
+[PSO] Iter 005100  costo=543.394085  azucar=222.552093  etanol=320.841992  res_E=-17.912063  RMSE_az=14.918180
+[PSO] Iter 006100  costo=543.394085  azucar=222.552093  etanol=320.841992  res_E=-17.912063  RMSE_az=14.918180
+[PSO] Iter 007100  costo=543.394085  azucar=222.552093  etanol=320.841992  res_E=-17.912063  RMSE_az=14.918180
+[PSO] Iter 008100  costo=543.394085  azucar=222.552093  etanol=320.841992  res_E=-17.912063  RMSE_az=14.918180
+[PSO] Iter 009100  costo=543.394085  azucar=222.552093  etanol=320.841992  res_E=-17.912063  RMSE_az=14.918180
+[PSO] Iter 010100  costo=370.888441  azucar=109.510252  etanol=261.378189  res_E=-16.167195  RMSE_az=10.464715
+[PSO] Iter 011100  costo=370.888441  azucar=109.510252  etanol=261.378189  res_E=-16.167195  RMSE_az=10.464715
+[PSO] Iter 012100  costo=370.888441  azucar=109.510252  etanol=261.378189  res_E=-16.167195  RMSE_az=10.464715
+[PSO] Iter 013100  costo=350.773107  azucar=56.383546  etanol=294.389561  res_E=-17.157784  RMSE_az=7.508898
+[PSO] Iter 014100  costo=340.460282  azucar=62.610750  etanol=277.849531  res_E=-16.668819  RMSE_az=7.912696
+[PSO] Iter 015100  costo=340.460282  azucar=62.610750  etanol=277.849531  res_E=-16.668819  RMSE_az=7.912696
+[PSO] Iter 016100  costo=340.460282  azucar=62.610750  etanol=277.849531  res_E=-16.668819  RMSE_az=7.912696
+[PSO] Iter 017100  costo=340.460282  azucar=62.610750  etanol=277.849531  res_E=-16.668819  RMSE_az=7.912696
+[PSO] Iter 018100  costo=340.460282  azucar=62.610750  etanol=277.849531  res_E=-16.668819  RMSE_az=7.912696
+[PSO] Iter 019100  costo=340.460282  azucar=62.610750  etanol=277.849531  res_E=-16.668819  RMSE_az=7.912696
+[PSO] Iter 020100  costo=339.154078  azucar=56.443801  etanol=282.710278  res_E=-16.813991  RMSE_az=7.512909
+[PSO] Iter 021100  costo=339.154078  azucar=56.443801  etanol=282.710278  res_E=-16.813991  RMSE_az=7.512909
+[PSO] Iter 022100  costo=339.154078  azucar=56.443801  etanol=282.710278  res_E=-16.813991  RMSE_az=7.512909
+[PSO] Iter 023100  costo=339.154078  azucar=56.443801  etanol=282.710278  res_E=-16.813991  RMSE_az=7.512909
+[PSO] Iter 024100  costo=339.154078  azucar=56.443801  etanol=282.710278  res_E=-16.813991  RMSE_az=7.512909
+[PSO] Iter 025100  costo=338.588673  azucar=50.821403  etanol=287.767269  res_E=-16.963704  RMSE_az=7.128913
+[PSO] Iter 026100  costo=338.080012  azucar=45.650242  etanol=292.429770  res_E=-17.100578  RMSE_az=6.756496
+[PSO] Iter 027100  costo=336.760119  azucar=53.278606  etanol=283.481513  res_E=-16.836909  RMSE_az=7.299220
+[PSO] Iter 028100  costo=336.568422  azucar=48.636261  etanol=287.932161  res_E=-16.968564  RMSE_az=6.973970
+[PSO] Iter 029100  costo=133.171385  azucar=123.326794  etanol=9.844591  res_E=-3.137609  RMSE_az=11.105260
+[PSO] Iter 030100  costo=47.501829  azucar=36.514451  etanol=10.987378  res_E=3.314721  RMSE_az=6.042719
+[PSO] Iter 031100  costo=47.501829  azucar=36.514451  etanol=10.987378  res_E=3.314721  RMSE_az=6.042719
+[PSO] Iter 032100  costo=38.556561  azucar=37.391113  etanol=1.165448  res_E=1.079559  RMSE_az=6.114827
+[PSO] Iter 033100  costo=38.556561  azucar=37.391113  etanol=1.165448  res_E=1.079559  RMSE_az=6.114827
+[PSO] Iter 034100  costo=26.298578  azucar=23.866919  etanol=2.431658  res_E=-1.559378  RMSE_az=4.885378
+[PSO] Iter 035100  costo=26.298578  azucar=23.866919  etanol=2.431658  res_E=-1.559378  RMSE_az=4.885378
+[PSO] Iter 036100  costo=26.298578  azucar=23.866919  etanol=2.431658  res_E=-1.559378  RMSE_az=4.885378
+[PSO] Iter 037100  costo=23.940186  azucar=21.793298  etanol=2.146888  res_E=1.465226  RMSE_az=4.668329
+[PSO] Iter 038100  costo=23.940186  azucar=21.793298  etanol=2.146888  res_E=1.465226  RMSE_az=4.668329
+[PSO] Iter 039100  costo=23.940186  azucar=21.793298  etanol=2.146888  res_E=1.465226  RMSE_az=4.668329
+[PSO] Iter 040100  costo=23.940186  azucar=21.793298  etanol=2.146888  res_E=1.465226  RMSE_az=4.668329
+[PSO] Iter 041100  costo=23.940186  azucar=21.793298  etanol=2.146888  res_E=1.465226  RMSE_az=4.668329
+[PSO] Iter 042100  costo=23.940186  azucar=21.793298  etanol=2.146888  res_E=1.465226  RMSE_az=4.668329
+[PSO] Iter 043100  costo=23.940186  azucar=21.793298  etanol=2.146888  res_E=1.465226  RMSE_az=4.668329
+[PSO] Iter 044100  costo=22.081410  azucar=21.393121  etanol=0.688289  res_E=0.829632  RMSE_az=4.625270
+[PSO] Iter 045100  costo=22.081410  azucar=21.393121  etanol=0.688289  res_E=0.829632  RMSE_az=4.625270
+[PSO] Iter 046100  costo=21.598196  azucar=21.364301  etanol=0.233895  res_E=0.483627  RMSE_az=4.622153
+[PSO] Iter 047100  costo=21.598196  azucar=21.364301  etanol=0.233895  res_E=0.483627  RMSE_az=4.622153
+[PSO] Iter 048100  costo=21.598196  azucar=21.364301  etanol=0.233895  res_E=0.483627  RMSE_az=4.622153
+[PSO] Iter 049100  costo=21.598196  azucar=21.364301  etanol=0.233895  res_E=0.483627  RMSE_az=4.622153
+[PSO] Iter 050100  costo=21.598196  azucar=21.364301  etanol=0.233895  res_E=0.483627  RMSE_az=4.622153
+[PSO] Iter 051100  costo=21.492704  azucar=21.486503  etanol=0.006201  res_E=0.078749  RMSE_az=4.635354
+[PSO] Iter 052100  costo=21.454155  azucar=21.445586  etanol=0.008569  res_E=0.092569  RMSE_az=4.630938
+[PSO] Iter 053100  costo=21.454155  azucar=21.445586  etanol=0.008569  res_E=0.092569  RMSE_az=4.630938
+[PSO] Iter 054100  costo=21.298103  azucar=21.235554  etanol=0.062548  res_E=0.250097  RMSE_az=4.608205
+[PSO] Iter 055100  costo=21.298103  azucar=21.235554  etanol=0.062548  res_E=0.250097  RMSE_az=4.608205
+[PSO] Iter 056100  costo=21.298103  azucar=21.235554  etanol=0.062548  res_E=0.250097  RMSE_az=4.608205
+[PSO] Iter 057100  costo=21.283779  azucar=21.156719  etanol=0.127059  res_E=0.356454  RMSE_az=4.599643
+[PSO] Iter 058100  costo=21.283779  azucar=21.156719  etanol=0.127059  res_E=0.356454  RMSE_az=4.599643
+[PSO] Iter 059100  costo=21.279279  azucar=21.199291  etanol=0.079988  res_E=0.282821  RMSE_az=4.604269
+[PSO] Iter 060100  costo=21.277070  azucar=21.194287  etanol=0.082784  res_E=0.287721  RMSE_az=4.603725
+[PSO] Iter 061100  costo=21.262615  azucar=21.161502  etanol=0.101112  res_E=0.317982  RMSE_az=4.600163
+[PSO] Iter 062100  costo=21.248759  azucar=21.164861  etanol=0.083898  res_E=0.289652  RMSE_az=4.600528
+[PSO] Iter 063100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 064100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 065100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 066100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 067100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 068100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 069100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 070100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 071100  costo=21.234917  azucar=21.183962  etanol=0.050955  res_E=0.225732  RMSE_az=4.602604
+[PSO] Iter 072100  costo=21.222021  azucar=21.179147  etanol=0.042874  res_E=0.207060  RMSE_az=4.602081
+[PSO] Iter 073100  costo=21.222021  azucar=21.179147  etanol=0.042874  res_E=0.207060  RMSE_az=4.602081
+[PSO] Iter 074100  costo=21.222021  azucar=21.179147  etanol=0.042874  res_E=0.207060  RMSE_az=4.602081
+[PSO] Iter 075100  costo=21.222021  azucar=21.179147  etanol=0.042874  res_E=0.207060  RMSE_az=4.602081
+[PSO] Iter 076100  costo=21.222021  azucar=21.179147  etanol=0.042874  res_E=0.207060  RMSE_az=4.602081
+[PSO] Iter 077100  costo=21.208257  azucar=21.152751  etanol=0.055506  res_E=0.235597  RMSE_az=4.599212
+[PSO] Iter 078100  costo=21.173175  azucar=21.087233  etanol=0.085942  res_E=0.293159  RMSE_az=4.592084
+[PSO] Iter 079100  costo=21.158419  azucar=21.049723  etanol=0.108696  res_E=0.329691  RMSE_az=4.587998
+[PSO] Iter 080100  costo=21.152551  azucar=21.028259  etanol=0.124292  res_E=0.352551  RMSE_az=4.585658
+[PSO] Iter 081100  costo=21.149418  azucar=20.935797  etanol=0.213621  res_E=0.462191  RMSE_az=4.575565
+[PSO] Iter 082100  costo=21.135422  azucar=21.005773  etanol=0.129648  res_E=0.360067  RMSE_az=4.583206
+[PSO] Iter 083100  costo=21.121235  azucar=21.010373  etanol=0.110861  res_E=0.332958  RMSE_az=4.583707
+[PSO] Iter 084100  costo=21.115827  azucar=21.042568  etanol=0.073258  res_E=0.270663  RMSE_az=4.587218
+[PSO] Iter 085100  costo=21.103710  azucar=20.999927  etanol=0.103782  res_E=0.322152  RMSE_az=4.582568
+[PSO] Iter 086100  costo=21.103710  azucar=20.999927  etanol=0.103782  res_E=0.322152  RMSE_az=4.582568
+[PSO] Iter 087100  costo=21.099963  azucar=20.988591  etanol=0.111372  res_E=0.333724  RMSE_az=4.581331
+[PSO] Iter 088100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 089100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 090100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 091100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 092100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 093100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 094100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 095100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 096100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 097100  costo=21.099244  azucar=21.023748  etanol=0.075496  res_E=0.274766  RMSE_az=4.585166
+[PSO] Iter 098100  costo=21.096730  azucar=20.950026  etanol=0.146704  res_E=0.383019  RMSE_az=4.577120
+[PSO] Iter 099100  costo=21.096730  azucar=20.950026  etanol=0.146704  res_E=0.383019  RMSE_az=4.577120
+[PSO] Iter 100100  costo=21.096196  azucar=20.952664  etanol=0.143532  res_E=0.378856  RMSE_az=4.577408
+
+=== ETAPA LOCAL LEAST SQUARES ===
+   Iteration     Total nfev        Cost      Cost reduction    Step norm     Optimality   
+       0              1         1.0548e+01                                    3.49e+04    
+       1              9         1.0545e+01      3.06e-03       1.61e-05       8.84e+03    
+       2             15         1.0545e+01      0.00e+00       0.00e+00       8.84e+03    
+`xtol` termination condition is satisfied.
+Function evaluations 15, initial cost 1.0548e+01, final cost 1.0545e+01, first-order optimality 8.84e+03.
+
+=== RESULTADO FINAL ===
+Costo etapa global (objective_function) 21.096195547588366
+Costo final refinado (objective_function) 21.090065683150065
+Cost interno de least_squares 10.545032841575035
+Tiempo total de optimización (pso_ls) 41.35 s
