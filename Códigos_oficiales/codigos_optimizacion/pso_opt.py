@@ -1,0 +1,871 @@
+import os
+import sys
+import numpy as np
+from mealpy import PSO, FloatVar
+import pyswarms as ps
+from pymoo.core.problem import Problem
+from pymoo.algorithms.soo.nonconvex.pso import PSO as PymooPSO
+from pymoo.optimize import minimize
+
+CURRENT_DIR = os.path.dirname(__file__)
+PARENT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if PARENT_DIR not in sys.path:
+    sys.path.insert(0, PARENT_DIR)
+    
+from simulacion import simulate_system
+
+
+PARAM_ORDER = ["mu0","betaG0","betaF0","Kn0","Kg0","Kf0","Kig0","Kie0","Kd0","Yxn","Yxg","Yxf","Yeg","Yef",]
+
+
+BOUNDS_DICT = {"mu0": (1e-2, 10),"betaG0": (1e-2, 10),"betaF0": (1e-2, 10),"Kn0": (1e-3, 1.0),
+            "Kg0": (1e-1, 100.0),"Kf0": (1e-1, 100.0),"Kig0": (1e-1, 100.0),"Kie0": (1e-1, 100.0),
+            "Yxn": (1e-1, 10.0),"Yxg": (1e-1, 10.0),"Yxf": (1e-1, 10.0),"Yeg": (1e-1, 10.0),
+            "Yef": (1e-1, 10.0),}
+
+
+PSO_CONFIG = {"epoch": 500,"pop_size": 25,"w": 0.7,"c1": 1.5,"c2": 1.5,"seed": 123,"verbose": True,}
+
+
+MODEL_1 = {
+    "fixed": {},
+    "free": {
+        "mu0": 0.278601,
+        "betaG0": 1.478706,
+        "betaF0": 1.792848,
+        "Kn0": 0.064151,
+        "Kg0": 58.122659,
+        "Kf0": 59.222824,
+        "Kig0": 71.630423,
+        "Kie0": 90.865909,
+        "Yxn": 13.617817,
+        "Yxg": 1.804689,
+        "Yxf": 6.470613,
+        "Yeg": 0.735207,
+        "Yef": 0.754100,
+    }
+}
+
+MODEL_1750 = {
+    "fixed": {
+        "mu0": 0.197200,
+        "betaG0": 0.229613,
+        "betaF0": 0.248792,
+        "Kf0": 7.165650,
+        "Kie0": 42.528284,
+        "Yeg": 0.451746,
+    },
+    "free": {
+        "Kn0": 0.017264,
+        "Kg0": 26.204288,
+        "Kig0": 134.167400,
+        "Yxn": 35.363591,
+        "Yxg": 15.347849,
+        "Yxf": 7.769926,
+        "Yef": 0.836931,
+    }
+}
+
+MODEL_1860 = {
+    "fixed": {
+        "mu0": 0.197200,
+        "betaG0": 0.229613,
+        "betaF0": 0.248792,
+        "Kig0": 44.150670,
+        "Kie0": 42.528284,
+        "Yxg": 1.393119,
+    },
+    "free": {
+        "Kn0": 0.027142,
+        "Kg0": 53.008633,
+        "Kf0": 60.118211,
+        "Yxn": 69.985750,
+        "Yxf": 7.390758,
+        "Yeg": 0.995332,
+        "Yef": 0.927205,
+    }
+}
+
+MODEL_2264 = {
+    "fixed": {
+        "Kn0": 0.009647,
+        "Kg0": 8.551854,
+        "Kf0": 7.165650,
+        "Kig0": 44.150670,
+        "Kie0": 42.528284,
+        "Yxf": 1.642634,
+    },
+    "free": {
+        "mu0": 0.277041,
+        "betaG0": 0.428944,
+        "betaF0": 0.516588,
+        "Yxn": 28.923223,
+        "Yxg": 3.330956,
+        "Yeg": 0.780173,
+        "Yef": 0.879215,
+    }
+}
+
+
+def prepare_model_structure(model_structure):
+    fixed_params = model_structure["fixed"].copy()
+    free_params = model_structure["free"].copy()
+
+    fixed_params["Kd0"] = 0.0001
+
+    if "Kd0" in free_params:
+        del free_params["Kd0"]
+
+    free_names = list(free_params.keys())
+    theta0 = np.array([free_params[name] for name in free_names], dtype=float)
+
+    return fixed_params, free_names, theta0
+
+
+def build_full_params(theta, free_names, fixed_params):
+    params = fixed_params.copy()
+    for name, value in zip(free_names, theta):
+        params[name] = float(value)
+    return params
+
+
+def params_dict_to_vector(params_dict, param_order=PARAM_ORDER):
+    return np.array([params_dict[name] for name in param_order], dtype=float)
+
+
+def build_bounds_for_free_params(free_names, bounds_dict):
+    bounds = []
+    for name in free_names:
+        if name not in bounds_dict:
+            raise ValueError(f"No hay bounds definidos para '{name}'")
+        bounds.append(bounds_dict[name])
+    return bounds
+
+
+def get_pso_config(custom_config=None):
+    config = PSO_CONFIG.copy()
+    if custom_config is not None:
+        config.update(custom_config)
+    return config
+
+
+def simulate_from_theta(theta, free_names, fixed_params, x0, t_rel, temp, Nadd, t_span):
+    params_dict = build_full_params(theta, free_names, fixed_params)
+    params_vector = params_dict_to_vector(params_dict, PARAM_ORDER)
+
+    sim = simulate_system(
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        tspan=t_span,
+        params_list=params_vector
+    )
+
+    y = sim.y.T
+    G_sim = np.asarray(y[:, 2], dtype=float)
+    F_sim = np.asarray(y[:, 3], dtype=float)
+    E_sim = np.asarray(y[:, 4], dtype=float)
+
+    sugars_sim = G_sim + F_sim
+    Et_final_sim = float(E_sim[-1])
+
+    return sim, sugars_sim, Et_final_sim
+
+
+def compute_objective_breakdown(
+    theta,
+    free_names,
+    fixed_params,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    penalty=1e12,
+    eps=1e-8
+):
+    try:
+        _, sugars_sim, Et_final_sim = simulate_from_theta(
+            theta=theta,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span
+        )
+
+        sugars_profile = np.asarray(sugars_profile, dtype=float)
+
+        if len(sugars_sim) != len(sugars_profile):
+            raise ValueError(
+                f"Largo incompatible entre azúcares simulados ({len(sugars_sim)}) "
+                f"y perfil experimental ({len(sugars_profile)})"
+            )
+
+        if not (np.all(np.isfinite(sugars_sim)) and np.isfinite(Et_final_sim)):
+            return {
+                "sugar_residual_vector": np.full(len(sugars_profile), np.nan),
+                "ethanol_residual": np.nan,
+                "sugar_error_sum": penalty,
+                "sugar_error_mean": penalty,
+                "ethanol_error": penalty,
+                "objective_total": penalty,
+                "sugars_sim": sugars_sim,
+                "Et_final_sim": Et_final_sim,
+                "sugar_scale": np.nan,
+                "ethanol_scale": np.nan,
+            }
+
+        sugar_scale = max(np.max(np.abs(sugars_profile)), eps)
+        ethanol_scale = max(abs(Et_final_exp), eps)
+
+        sugar_res = (sugars_sim - sugars_profile) / sugar_scale
+        etoh_res = (Et_final_sim - Et_final_exp) / ethanol_scale
+
+        sugar_error_sum = np.sum(sugar_res ** 2)
+        sugar_error_mean = sugar_error_sum / len(sugars_sim)
+
+        ethanol_error = etoh_res ** 2
+        objective_total = sugar_error_mean + ethanol_error
+
+        return {
+            "sugar_residual_vector": sugar_res,
+            "ethanol_residual": float(etoh_res),
+            "sugar_error_sum": float(sugar_error_sum),
+            "sugar_error_mean": float(sugar_error_mean),
+            "ethanol_error": float(ethanol_error),
+            "objective_total": float(objective_total),
+            "sugars_sim": sugars_sim,
+            "Et_final_sim": float(Et_final_sim),
+            "sugar_scale": float(sugar_scale),
+            "ethanol_scale": float(ethanol_scale),
+        }
+
+    except Exception as e:
+        print(f"[WARNING] Falló compute_objective_breakdown con theta={theta}. Error: {e}")
+        return {
+            "sugar_residual_vector": np.full(len(sugars_profile), np.nan),
+            "ethanol_residual": np.nan,
+            "sugar_error_sum": penalty,
+            "sugar_error_mean": penalty,
+            "ethanol_error": penalty,
+            "objective_total": penalty,
+            "sugars_sim": None,
+            "Et_final_sim": np.nan,
+            "sugar_scale": np.nan,
+            "ethanol_scale": np.nan,
+        }
+
+
+def print_iteration_breakdown(
+    theta,
+    free_names,
+    fixed_params,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    prefix=""
+):
+    breakdown = compute_objective_breakdown(
+        theta=theta,
+        free_names=free_names,
+        fixed_params=fixed_params,
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        t_span=t_span,
+        sugars_profile=sugars_profile,
+        Et_final_exp=Et_final_exp
+    )
+
+    sugar_res = breakdown["sugar_residual_vector"]
+
+    if sugar_res is None or np.any(~np.isfinite(sugar_res)):
+        print(f"{prefix} costo={breakdown['objective_total']:.6f} | breakdown inválido")
+        return
+
+    sugar_rmse = np.sqrt(np.mean(sugar_res ** 2))
+
+    print(
+        f"{prefix} "
+        f"costo={breakdown['objective_total']:.6f} | "
+        f"azucar={breakdown['sugar_error_mean']:.6f} | "
+        f"etanol={breakdown['ethanol_error']:.6f} | "
+        f"res_E={breakdown['ethanol_residual']:.6f} | "
+        f"RMSE_az_norm={sugar_rmse:.6f}"
+    )
+
+
+def objective_function(
+    theta,
+    free_names,
+    fixed_params,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    penalty=1e12
+):
+    breakdown = compute_objective_breakdown(
+        theta=theta,
+        free_names=free_names,
+        fixed_params=fixed_params,
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        t_span=t_span,
+        sugars_profile=sugars_profile,
+        Et_final_exp=Et_final_exp,
+        penalty=penalty
+    )
+    return breakdown["objective_total"]
+
+
+def objective_function_swarm(
+    swarm,
+    free_names,
+    fixed_params,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    penalty=1e12
+):
+    swarm = np.atleast_2d(swarm)
+    costs = np.empty(swarm.shape[0], dtype=float)
+
+    for i, theta in enumerate(swarm):
+        costs[i] = objective_function(
+            theta=theta,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            penalty=penalty
+        )
+
+    return costs
+
+
+def run_pso_custom(
+    free_names,
+    fixed_params,
+    bounds,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    pso_config=None
+):
+    config = get_pso_config(pso_config)
+
+    epoch = config["epoch"]
+    pop_size = config["pop_size"]
+    w = config["w"]
+    c1 = config["c1"]
+    c2 = config["c2"]
+    seed = config["seed"]
+    verbose = config["verbose"]
+
+    rng = np.random.default_rng(seed)
+
+    n_dim = len(free_names)
+    lb = np.array([b[0] for b in bounds], dtype=float)
+    ub = np.array([b[1] for b in bounds], dtype=float)
+
+    positions = rng.uniform(lb, ub, size=(pop_size, n_dim))
+    velocities = np.zeros((pop_size, n_dim))
+
+    pbest_positions = positions.copy()
+    pbest_scores = np.full(pop_size, np.inf)
+
+    gbest_position = positions[0].copy()
+    gbest_score = np.inf
+
+    history = []
+
+    for it in range(epoch):
+        for i in range(pop_size):
+            score = objective_function(
+                theta=positions[i],
+                free_names=free_names,
+                fixed_params=fixed_params,
+                x0=x0,
+                t_rel=t_rel,
+                temp=temp,
+                Nadd=Nadd,
+                t_span=t_span,
+                sugars_profile=sugars_profile,
+                Et_final_exp=Et_final_exp
+            )
+
+            if score < pbest_scores[i]:
+                pbest_scores[i] = score
+                pbest_positions[i] = positions[i].copy()
+
+            if score < gbest_score:
+                gbest_score = score
+                gbest_position = positions[i].copy()
+
+        for i in range(pop_size):
+            r1 = rng.random(n_dim)
+            r2 = rng.random(n_dim)
+
+            velocities[i] = (
+                w * velocities[i]
+                + c1 * r1 * (pbest_positions[i] - positions[i])
+                + c2 * r2 * (gbest_position - positions[i])
+            )
+
+            positions[i] = positions[i] + velocities[i]
+            positions[i] = np.clip(positions[i], lb, ub)
+
+        history.append(gbest_score)
+
+        if verbose:
+            prefix = f"[PSO_CUSTOM] Iter {it+1:03d}/{epoch} |"
+            print_iteration_breakdown(
+                theta=gbest_position,
+                free_names=free_names,
+                fixed_params=fixed_params,
+                x0=x0,
+                t_rel=t_rel,
+                temp=temp,
+                Nadd=Nadd,
+                t_span=t_span,
+                sugars_profile=sugars_profile,
+                Et_final_exp=Et_final_exp,
+                prefix=prefix
+            )
+
+    best_params = build_full_params(gbest_position, free_names, fixed_params)
+
+    result = {
+        "x": gbest_position,
+        "fun": float(gbest_score),
+        "history": history,
+        "method": "pso_custom",
+        "raw_result": None,
+    }
+
+    return result, best_params
+
+
+def run_pso_pyswarms(
+    free_names,
+    fixed_params,
+    bounds,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    pso_config=None
+):
+    config = get_pso_config(pso_config)
+
+    epoch = config["epoch"]
+    pop_size = config["pop_size"]
+    w = config["w"]
+    c1 = config["c1"]
+    c2 = config["c2"]
+    seed = config["seed"]
+    verbose = config["verbose"]
+
+    lb = np.array([b[0] for b in bounds], dtype=float)
+    ub = np.array([b[1] for b in bounds], dtype=float)
+    n_dim = len(free_names)
+
+    options = {"c1": c1, "c2": c2, "w": w}
+
+    optimizer = ps.single.GlobalBestPSO(
+        n_particles=pop_size,
+        dimensions=n_dim,
+        options=options,
+        bounds=(lb, ub)
+    )
+
+    best_cost, best_theta = optimizer.optimize(
+        objective_function_swarm,
+        iters=epoch,
+        verbose=False,
+        free_names=free_names,
+        fixed_params=fixed_params,
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        t_span=t_span,
+        sugars_profile=sugars_profile,
+        Et_final_exp=Et_final_exp
+    )
+
+    history = list(getattr(optimizer, "cost_history", []))
+
+    if verbose:
+        prefix = f"[PSO_PYSWARMS] Final |"
+        print_iteration_breakdown(
+            theta=best_theta,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            prefix=prefix
+        )
+
+    best_params = build_full_params(best_theta, free_names, fixed_params)
+
+    result = {
+        "x": np.asarray(best_theta, dtype=float),
+        "fun": float(best_cost),
+        "history": history,
+        "method": "pso_pyswarms",
+        "raw_result": optimizer,
+    }
+
+    return result, best_params
+
+
+def run_pso_mealpy(
+    free_names,
+    fixed_params,
+    bounds,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    pso_config=None
+):
+    config = get_pso_config(pso_config)
+
+    epoch = config["epoch"]
+    pop_size = config["pop_size"]
+    w = config["w"]
+    c1 = config["c1"]
+    c2 = config["c2"]
+    seed = config["seed"]
+    verbose = config["verbose"]
+
+    lb = [b[0] for b in bounds]
+    ub = [b[1] for b in bounds]
+
+    def mealpy_obj(solution):
+        theta = np.asarray(solution, dtype=float)
+        return objective_function(
+            theta=theta,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp
+        )
+
+    problem = {
+        "bounds": FloatVar(lb=lb, ub=ub, name="theta"),
+        "minmax": "min",
+        "obj_func": mealpy_obj,
+    }
+
+    model = PSO.OriginalPSO(
+        epoch=epoch,
+        pop_size=pop_size,
+        c1=c1,
+        c2=c2,
+        w=w
+    )
+
+    g_best = model.solve(problem, seed=seed)
+
+    best_theta = np.asarray(g_best.solution, dtype=float)
+    best_cost = float(g_best.target.fitness)
+
+    history = None
+    if hasattr(model, "history") and hasattr(model.history, "list_global_best_fit"):
+        history = list(model.history.list_global_best_fit)
+
+    if verbose:
+        prefix = f"[PSO_MEALPY] Final |"
+        print_iteration_breakdown(
+            theta=best_theta,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            prefix=prefix
+        )
+
+    best_params = build_full_params(best_theta, free_names, fixed_params)
+
+    result = {
+        "x": best_theta,
+        "fun": best_cost,
+        "history": history,
+        "method": "pso_mealpy",
+        "raw_result": g_best,
+    }
+
+    return result, best_params
+
+
+class FermentationPSOProblem(Problem):
+    def __init__(
+        self,
+        free_names,
+        fixed_params,
+        x0,
+        t_rel,
+        temp,
+        Nadd,
+        t_span,
+        sugars_profile,
+        Et_final_exp,
+        xl,
+        xu
+    ):
+        super().__init__(n_var=len(free_names), n_obj=1, xl=xl, xu=xu)
+        self.free_names = free_names
+        self.fixed_params = fixed_params
+        self.x0 = x0
+        self.t_rel = t_rel
+        self.temp = temp
+        self.Nadd = Nadd
+        self.t_span = t_span
+        self.sugars_profile = sugars_profile
+        self.Et_final_exp = Et_final_exp
+
+    def _evaluate(self, X, out, *args, **kwargs):
+        F = objective_function_swarm(
+            swarm=X,
+            free_names=self.free_names,
+            fixed_params=self.fixed_params,
+            x0=self.x0,
+            t_rel=self.t_rel,
+            temp=self.temp,
+            Nadd=self.Nadd,
+            t_span=self.t_span,
+            sugars_profile=self.sugars_profile,
+            Et_final_exp=self.Et_final_exp
+        )
+        out["F"] = F.reshape(-1, 1)
+
+
+def run_pso_pymoo(
+    free_names,
+    fixed_params,
+    bounds,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    pso_config=None
+):
+    config = get_pso_config(pso_config)
+
+    epoch = config["epoch"]
+    pop_size = config["pop_size"]
+    w = config["w"]
+    c1 = config["c1"]
+    c2 = config["c2"]
+    seed = config["seed"]
+    verbose = config["verbose"]
+
+    lb = np.array([b[0] for b in bounds], dtype=float)
+    ub = np.array([b[1] for b in bounds], dtype=float)
+
+    problem = FermentationPSOProblem(
+        free_names=free_names,
+        fixed_params=fixed_params,
+        x0=x0,
+        t_rel=t_rel,
+        temp=temp,
+        Nadd=Nadd,
+        t_span=t_span,
+        sugars_profile=sugars_profile,
+        Et_final_exp=Et_final_exp,
+        xl=lb,
+        xu=ub
+    )
+
+    algorithm = PymooPSO(
+        pop_size=pop_size,
+        w=w,
+        c1=c1,
+        c2=c2,
+        adaptive=False
+    )
+
+    pymoo_result = minimize(
+        problem,
+        algorithm,
+        termination=("n_gen", epoch),
+        seed=seed,
+        verbose=False
+    )
+
+    best_theta = np.asarray(pymoo_result.X, dtype=float)
+    best_cost = float(np.atleast_1d(pymoo_result.F)[0])
+
+    if verbose:
+        prefix = f"[PSO_PYMOO] Final |"
+        print_iteration_breakdown(
+            theta=best_theta,
+            free_names=free_names,
+            fixed_params=fixed_params,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            prefix=prefix
+        )
+
+    best_params = build_full_params(best_theta, free_names, fixed_params)
+
+    result = {
+        "x": best_theta,
+        "fun": best_cost,
+        "history": None,
+        "method": "pso_pymoo",
+        "raw_result": pymoo_result,
+    }
+
+    return result, best_params
+
+
+def run_estimation(
+    method,
+    model_structure,
+    x0,
+    t_rel,
+    temp,
+    Nadd,
+    t_span,
+    sugars_profile,
+    Et_final_exp,
+    pso_config=None
+):
+    fixed_params, free_names, theta0 = prepare_model_structure(model_structure)
+    bounds = build_bounds_for_free_params(free_names, BOUNDS_DICT)
+    config = get_pso_config(pso_config)
+
+    print("===================================")
+    print(f"Método: {method}")
+    print("Parámetros libres:", free_names)
+    print("Theta inicial:", theta0)
+    print("Configuración PSO:", config)
+    print("===================================")
+
+    if method == "pso_custom":
+        return run_pso_custom(
+            free_names=free_names,
+            fixed_params=fixed_params,
+            bounds=bounds,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            pso_config=config
+        )
+
+    elif method == "pso_pyswarms":
+        return run_pso_pyswarms(
+            free_names=free_names,
+            fixed_params=fixed_params,
+            bounds=bounds,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            pso_config=config
+        )
+
+    elif method == "pso_mealpy":
+        return run_pso_mealpy(
+            free_names=free_names,
+            fixed_params=fixed_params,
+            bounds=bounds,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            pso_config=config
+        )
+
+    elif method == "pso_pymoo":
+        return run_pso_pymoo(
+            free_names=free_names,
+            fixed_params=fixed_params,
+            bounds=bounds,
+            x0=x0,
+            t_rel=t_rel,
+            temp=temp,
+            Nadd=Nadd,
+            t_span=t_span,
+            sugars_profile=sugars_profile,
+            Et_final_exp=Et_final_exp,
+            pso_config=config
+        )
+
+    else:
+        raise ValueError(
+            "Método no reconocido. Usa: "
+            "'pso_custom', 'pso_pyswarms', 'pso_mealpy' o 'pso_pymoo'."
+        )
