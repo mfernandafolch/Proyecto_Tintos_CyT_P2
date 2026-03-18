@@ -1,9 +1,17 @@
 # Este código la idea es que saque la info una sola vez al comienzo,
 # y después pueda correr varias simulaciones / optimizaciones.
 
+import os
+import sys
+
+CURRENT_DIR = os.path.dirname(__file__)
+PARENT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if PARENT_DIR not in sys.path:
+    sys.path.insert(0, PARENT_DIR)
+
 from simulacion import data_for_simulation, simulate_system, plot_simulation_with_data
-from prueba_opt import MODEL_1750, MODEL_1860, MODEL_2264, run_estimation, PARAM_ORDER
-from prueba_opt import params_dict_to_vector, objective_function, prepare_model_structure
+from max_prueba_opt import MODEL_1750, MODEL_1860, MODEL_2264, run_estimation, PARAM_ORDER
+from max_prueba_opt import params_dict_to_vector, objective_function, prepare_model_structure
 import numpy as np
 import time
 
@@ -37,7 +45,7 @@ Et_final = data_excel[6]
 # Elegir estructura de parámetros y método
 # ------------------------------------------------------------
 model_structure = MODEL_2264
-method = "pso"   # "de", "da", "pso", "de_ls", "da_ls", "pso_ls"
+method = "pso"   # "de", "da", "pso", "mealpy_pso"
 
 # ------------------------------------------------------------
 # Ejecutar optimización

@@ -540,8 +540,8 @@ def run_differential_evolution(
     t_span,
     sugars_profile,
     Et_final_exp,
-    maxiter=14,
-    popsize=8,
+    maxiter=20,
+    popsize=6,
     seed=50
 ):
     """
@@ -669,7 +669,7 @@ def run_pso(
     sugars_profile,
     Et_final_exp,
     n_particles=25,
-    n_iter=100,
+    n_iter=500,
     w=0.4, # 0.7
     c1=2.05,  # 1.5
     c2=2.05,  # 1.5
@@ -766,8 +766,8 @@ def run_mealpy_pso(
     t_span,
     sugars_profile,
     Et_final_exp,
-    epoch=25,
-    pop_size=100
+    epoch=500,
+    pop_size=20
     ):
     
     """
@@ -798,7 +798,8 @@ def run_mealpy_pso(
         "obj_func": mealpy_obj,
     }
 
-    model = PSO.OriginalPSO(epoch=epoch, pop_size=pop_size, seed=123)
+    model = PSO.HPSO_TVAC(seed=123)
+    # model = PSO.OriginalPSO(epoch=epoch, pop_size=pop_size, seed=123)
 
     g_best = model.solve(problem)
 
