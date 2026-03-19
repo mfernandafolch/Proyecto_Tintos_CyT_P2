@@ -6,6 +6,7 @@ import pyswarms as ps
 from pymoo.core.problem import Problem
 from pymoo.algorithms.soo.nonconvex.pso import PSO as PymooPSO
 from pymoo.optimize import minimize
+import random
 
 CURRENT_DIR = os.path.dirname(__file__)
 PARENT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
@@ -498,6 +499,10 @@ def run_pso_pyswarms(
     c2 = config["c2"]
     seed = config["seed"]
     verbose = config["verbose"]
+    
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
 
     lb = np.array([b[0] for b in bounds], dtype=float)
     ub = np.array([b[1] for b in bounds], dtype=float)
@@ -515,7 +520,7 @@ def run_pso_pyswarms(
     best_cost, best_theta = optimizer.optimize(
         objective_function_swarm,
         iters=epoch,
-        verbose=False,
+        verbose=True,
         free_names=free_names,
         fixed_params=fixed_params,
         x0=x0,
@@ -746,7 +751,7 @@ def run_pso_pymoo(
         algorithm,
         termination=("n_gen", epoch),
         seed=seed,
-        verbose=False
+        verbose=True
     )
 
     best_theta = np.asarray(pymoo_result.X, dtype=float)
