@@ -19,7 +19,7 @@ from simulacion import simulate_system
 PARAM_ORDER = ["mu0","betaG0","betaF0","Kn0","Kg0","Kf0","Kig0","Kie0","Kd0","Yxn","Yxg","Yxf","Yeg","Yef",]
 
 
-BOUNDS_DICT = {"mu0": (1e-2, 10),"betaG0": (1e-2, 10),"betaF0": (1e-2, 10),"Kn0": (1e-3, 1.0),
+BOUNDS_DICT = {"mu0": (1e-2, 1.0),"betaG0": (1e-2, 10),"betaF0": (1e-2, 10),"Kn0": (1e-3, 1.0),
             "Kg0": (1e-1, 100.0),"Kf0": (1e-1, 100.0),"Kig0": (1e-1, 100.0),"Kie0": (1e-1, 100.0),
             "Yxn": (1e-1, 10.0),"Yxg": (1e-1, 10.0),"Yxf": (1e-1, 10.0),"Yeg": (1e-1, 10.0),
             "Yef": (1e-1, 10.0),}

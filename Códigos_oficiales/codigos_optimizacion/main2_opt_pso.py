@@ -19,8 +19,8 @@ def format_elapsed(seconds):
 
 
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\51.700 L\Data CS 25 SUC. IVAN VALDES estanque 239.xlsx"
-# path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx"
-path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx"
+path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx"
+# path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx"
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 31.xlsx"
 # path = r"C:\Users\MARIA\OneDrive - Universidad Católica de Chile\Escritorio\Concha y Toro\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx"
 
@@ -43,17 +43,17 @@ Et_final = data_excel[6]
 # ------------------------------------------------------------
 model_structure = MODEL_2264
 
-method = "pso_custom"
+# method = "pso_custom"
 # method = "pso_pyswarms"
 # method = "pso_mealpy"
-# method = "pso_pymoo"
+method = "pso_pymoo"
 
 # ------------------------------------------------------------
 # Configuración única para todos los PSO
 # ------------------------------------------------------------
 pso_config = PSO_CONFIG.copy()
 pso_config["epoch"] = 500
-pso_config["pop_size"] = 20
+pso_config["pop_size"] = 25
 pso_config["w"] = 0.7
 pso_config["c1"] = 1.5
 pso_config["c2"] = 1.5
