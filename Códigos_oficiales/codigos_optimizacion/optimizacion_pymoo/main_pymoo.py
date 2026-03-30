@@ -18,13 +18,24 @@ def format_elapsed(seconds):
     return f"{minutes} min {rem_seconds:.2f} s" if minutes else f"{rem_seconds:.2f} s"
 
 
-paths = [
-    # r"C:\Users\p-mfolch\OneDrive - Viña Concha y Toro S.A\Escritorio\Archivos\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\51.700 L\Data CS 25 SUC. IVAN VALDES estanque 239.xlsx",
-    # r"C:\Users\p-mfolch\OneDrive - Viña Concha y Toro S.A\Escritorio\Archivos\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx",
-    # r"C:\Users\p-mfolch\OneDrive - Viña Concha y Toro S.A\Escritorio\Archivos\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx",
-    r"C:\Users\p-mfolch\OneDrive - Viña Concha y Toro S.A\Escritorio\Archivos\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 31.xlsx",
-    # r"C:\Users\p-mfolch\OneDrive - Viña Concha y Toro S.A\Escritorio\Archivos\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx",
-    # r"C:\Users\p-mfolch\OneDrive - Viña Concha y Toro S.A\Escritorio\Archivos\Proyecto_Tintos_CyT_P2\Datos_industriales\CS\100.000 L\Data CS 25 EL BOLDO estanque 55.xlsx",
+paths = [ # Cabernet Sauvignon
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 AGROCAUQ estanque 68.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 61.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 PAROT+AURORA estanque 54.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 EL BOLDO estanque 55.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 BOLDO estanque 30.xlsx",
+    # Syrah 
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU+VAL+FN estanque 36.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 VAL+STARAQ estanque 56.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU estanque 62.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 25 LOU estanque 30.xlsx",
+    # Merlot 
+    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 Q. AGUA estanque 85.xlsx",
+    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 24 QAGUA estanque 54.xlsx",
+    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 AURORA + STA MARTA estanque 57.xlsx",
+    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 STA MARTA estanque 62.xlsx",
+
 ]
 
 
@@ -61,7 +72,7 @@ pso_config["c1"] = 1.5
 pso_config["c2"] = 1.5
 pso_config["seed"] = 123
 pso_config["verbose"] = True
-pso_config["relative_gap_threshold"] = 0.05 
+pso_config["relative_gap_threshold"] = 0.01 
 # criterio de convergencia: si el gap relativo entre el mejor costo y el promedio de los costos 
 # de la población es menor a este umbral, se detiene la optimización.
 
