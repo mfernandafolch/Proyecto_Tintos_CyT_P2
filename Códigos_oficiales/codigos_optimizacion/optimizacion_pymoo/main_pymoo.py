@@ -61,7 +61,9 @@ pso_config["c1"] = 1.5
 pso_config["c2"] = 1.5
 pso_config["seed"] = 123
 pso_config["verbose"] = True
-pso_config["relative_gap_threshold"] = 0.05
+pso_config["relative_gap_threshold"] = 0.05 
+# criterio de convergencia: si el gap relativo entre el mejor costo y el promedio de los costos 
+# de la población es menor a este umbral, se detiene la optimización.
 
 opt_start = time.perf_counter()
 result, best_params = run_pymoo_estimation(
