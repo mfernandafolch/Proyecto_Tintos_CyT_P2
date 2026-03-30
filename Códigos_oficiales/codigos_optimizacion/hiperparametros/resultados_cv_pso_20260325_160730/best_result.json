@@ -1,0 +1,35 @@
+{
+  "best_result": {
+    "combo_id": 2,
+    "c1": 1.5,
+    "c2": 1.5,
+    "w": 0.7,
+    "pop_size": 25,
+    "epoch": 100,
+    "n_folds_total": 5,
+    "n_folds_ok": 5,
+    "n_folds_failed": 0,
+    "mean_train_cost": 0.01849711790669697,
+    "std_train_cost": 0.0018025984003810405,
+    "mean_val_cost": 0.03714604090178826,
+    "std_val_cost": 0.02057855258103459,
+    "min_val_cost": 0.009768827308012627,
+    "max_val_cost": 0.07312300879066985,
+    "mean_elapsed_seconds": 472.7389879200142,
+    "total_elapsed_seconds": 2363.694939600071,
+    "generalization_gap": 0.01864892299509129,
+    "status": "ok",
+    "failed_folds": []
+  },
+  "total_elapsed_seconds": 2365.871354000061,
+  "total_elapsed_human": "39 min 25.87 s",
+  "n_datasets": 5,
+  "n_folds": 5,
+  "n_combinations": 2,
+  "n_total_pso_runs": 10,
+  "output_files": {
+    "fold_results": "c:\\Users\\p-mfolch\\OneDrive - Viña Concha y Toro S.A\\Escritorio\\Archivos\\Proyecto_Tintos_CyT_P2\\Códigos_oficiales\\codigos_optimizacion\\optimizacion_oficial\\resultados_cv_pso_20260325_160730\\cv_fold_results.xlsx",
+    "combo_summary": "c:\\Users\\p-mfolch\\OneDrive - Viña Concha y Toro S.A\\Escritorio\\Archivos\\Proyecto_Tintos_CyT_P2\\Códigos_oficiales\\codigos_optimizacion\\optimizacion_oficial\\resultados_cv_pso_20260325_160730\\cv_combo_summary.xlsx",
+    "best_result_json": "c:\\Users\\p-mfolch\\OneDrive - Viña Concha y Toro S.A\\Escritorio\\Archivos\\Proyecto_Tintos_CyT_P2\\Códigos_oficiales\\codigos_optimizacion\\optimizacion_oficial\\resultados_cv_pso_20260325_160730\\best_result.json"
+  }
+}
