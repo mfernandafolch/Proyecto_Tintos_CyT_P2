@@ -40,7 +40,7 @@ BOUNDS_DICT = {
 }
 
 PSO_CONFIG = {
-    "epoch": 500,
+    "epoch": 1000,
     "pop_size": 25,
     "w": 0.7,
     "c1": 1.5,
@@ -48,7 +48,7 @@ PSO_CONFIG = {
     "seed": 123,
     "verbose": True,
     "save_history": True,
-    "relative_gap_threshold": 0.05,
+    "relative_gap_threshold": 0.01,
 }
 
 MODEL_2264 = {
