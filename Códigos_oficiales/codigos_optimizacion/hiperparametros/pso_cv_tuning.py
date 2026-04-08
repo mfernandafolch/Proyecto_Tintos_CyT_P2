@@ -80,17 +80,15 @@ def build_hyperparameter_grid(
     c2_options,
     w_options,
     pop_size_options,
-    epoch_options,
 ):
     combos = []
     combo_id = 1
 
-    for c1, c2, w, pop_size, epoch in product(
+    for c1, c2, w, pop_size in product(
         c1_options,
         c2_options,
         w_options,
         pop_size_options,
-        epoch_options,
     ):
         combos.append(
             {
@@ -99,7 +97,6 @@ def build_hyperparameter_grid(
                 "c2": float(c2),
                 "w": float(w),
                 "pop_size": int(pop_size),
-                "epoch": int(epoch),
             }
         )
         combo_id += 1
@@ -120,7 +117,25 @@ def serialize_for_excel(value):
 
 
 def _fold_record_to_dict(record):
-    return {k: serialize_for_excel(v) for k, v in record.items()}
+    fold_columns = [
+        "combo_id",
+        "fold_id",
+        "c1",
+        "c2",
+        "w",
+        "pop_size",
+        "train_indices",
+        "val_index",
+        "train_names",
+        "train_cost_total",
+        "val_cost",
+        "elapsed_seconds",
+        "best_theta_free",
+    ]
+    return {
+        k: serialize_for_excel(record.get(k, np.nan))
+        for k in fold_columns
+    }
 
 
 def _summary_record_to_dict(record):
@@ -142,7 +157,11 @@ def evaluate_single_fold(
     pso_config["c2"] = combo["c2"]
     pso_config["w"] = combo["w"]
     pso_config["pop_size"] = combo["pop_size"]
-    pso_config["epoch"] = combo["epoch"]
+    pso_config["epoch"] = base_pso_config.get("epoch", PSO_CONFIG.get("epoch", 1000))
+    pso_config["relative_gap_threshold"] = base_pso_config.get(
+        "relative_gap_threshold",
+        PSO_CONFIG.get("relative_gap_threshold", 0.05),
+    )
 
     fixed_params, free_names, _ = prepare_model_structure(model_structure)
 
@@ -154,7 +173,6 @@ def evaluate_single_fold(
             datasets=train_datasets,
             pso_config=pso_config,
         )
-
         best_theta = np.asarray(result["x"], dtype=float)
 
         train_cost_total = objective_function_multi(
@@ -187,22 +205,13 @@ def evaluate_single_fold(
             "c2": combo["c2"],
             "w": combo["w"],
             "pop_size": combo["pop_size"],
-            "epoch": combo["epoch"],
             "train_indices": fold["train_indices"],
             "val_index": fold["val_index"],
             "train_names": [d["name"] for d in train_datasets],
-            "val_name": val_dataset["name"],
             "train_cost_total": float(train_cost_total),
-            "train_cost_mean": float(train_cost_mean),
             "val_cost": float(val_cost),
-            "optimizer_best_fun": float(result["fun"]),
             "elapsed_seconds": float(elapsed_seconds),
-            "seed": pso_config.get("seed", None),
-            "status": "ok",
-            "error_message": "",
             "best_theta_free": best_theta.tolist(),
-            "best_params_full": best_params,
-            "traceback": "",
         }
 
     except Exception as e:
@@ -215,32 +224,25 @@ def evaluate_single_fold(
             "c2": combo["c2"],
             "w": combo["w"],
             "pop_size": combo["pop_size"],
-            "epoch": combo["epoch"],
             "train_indices": fold["train_indices"],
             "val_index": fold["val_index"],
             "train_names": [d["name"] for d in train_datasets],
-            "val_name": val_dataset["name"],
             "train_cost_total": np.nan,
-            "train_cost_mean": np.nan,
             "val_cost": np.nan,
-            "optimizer_best_fun": np.nan,
             "elapsed_seconds": float(elapsed_seconds),
-            "seed": pso_config.get("seed", None),
-            "status": "failed",
-            "error_message": f"{type(e).__name__}: {str(e)}",
             "best_theta_free": [],
-            "best_params_full": {},
-            "traceback": traceback.format_exc(),
+            "_status": "failed",
+            "_error_message": f"{type(e).__name__}: {str(e)}",
+            "_traceback": traceback.format_exc(),
         }
 
 
 def summarize_combo_records(combo, fold_records):
-    ok_records = [r for r in fold_records if r["status"] == "ok"]
-    failed_records = [r for r in fold_records if r["status"] != "ok"]
+    ok_records = [r for r in fold_records if r.get("_status", "ok") == "ok"]
+    failed_records = [r for r in fold_records if r.get("_status", "ok") != "ok"]
 
-    train_costs = [r["train_cost_mean"] for r in ok_records]
+    train_costs = [r["train_cost_total"] for r in ok_records]
     val_costs = [r["val_cost"] for r in ok_records]
-    elapsed = [r["elapsed_seconds"] for r in fold_records]
 
     return {
         "combo_id": combo["combo_id"],
@@ -248,9 +250,6 @@ def summarize_combo_records(combo, fold_records):
         "c2": combo["c2"],
         "w": combo["w"],
         "pop_size": combo["pop_size"],
-        "epoch": combo["epoch"],
-        "n_folds_total": len(fold_records),
-        "n_folds_ok": len(ok_records),
         "n_folds_failed": len(failed_records),
         "mean_train_cost": float(np.nanmean(train_costs)) if train_costs else np.nan,
         "std_train_cost": float(np.nanstd(train_costs)) if train_costs else np.nan,
@@ -258,15 +257,6 @@ def summarize_combo_records(combo, fold_records):
         "std_val_cost": float(np.nanstd(val_costs)) if val_costs else np.nan,
         "min_val_cost": float(np.nanmin(val_costs)) if val_costs else np.nan,
         "max_val_cost": float(np.nanmax(val_costs)) if val_costs else np.nan,
-        "mean_elapsed_seconds": float(np.nanmean(elapsed)) if elapsed else np.nan,
-        "total_elapsed_seconds": float(np.nansum(elapsed)) if elapsed else np.nan,
-        "generalization_gap": (
-            float(np.nanmean(val_costs) - np.nanmean(train_costs))
-            if train_costs and val_costs
-            else np.nan
-        ),
-        "status": "ok" if len(failed_records) == 0 else "partial_failed",
-        "failed_folds": [r["fold_id"] for r in failed_records],
     }
 
 
@@ -311,7 +301,6 @@ def run_cv_hyperparameter_search(
     c2_options,
     w_options,
     pop_size_options,
-    epoch_options,
     output_dir,
     model_structure=None,
     base_pso_config=None,
@@ -342,7 +331,6 @@ def run_cv_hyperparameter_search(
         c2_options=c2_options,
         w_options=w_options,
         pop_size_options=pop_size_options,
-        epoch_options=epoch_options,
     )
 
     fold_xlsx = os.path.join(output_dir, "cv_fold_results.xlsx")
@@ -378,8 +366,7 @@ def run_cv_hyperparameter_search(
                 print(f"[{len(all_combo_summaries)}/{len(combos)}] "
                     f"Combinación terminada | combo_id={result['summary']['combo_id']} | "
                     f"val_mean={result['summary']['mean_val_cost']:.6f} | "
-                    f"train_mean={result['summary']['mean_train_cost']:.6f} | "
-                    f"tiempo={format_elapsed(result['summary']['total_elapsed_seconds'])}"
+                    f"train_mean={result['summary']['mean_train_cost']:.6f}"
                 )
     else:
         for combo in combos:

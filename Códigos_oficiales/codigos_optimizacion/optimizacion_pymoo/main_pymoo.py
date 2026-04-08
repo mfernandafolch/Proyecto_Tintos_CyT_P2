@@ -18,23 +18,23 @@ def format_elapsed(seconds):
     return f"{minutes} min {rem_seconds:.2f} s" if minutes else f"{rem_seconds:.2f} s"
 
 
-# def format_fixed_decimals(value, decimals=5):
-#     if np.isscalar(value):
-#         return f"{float(value):.{decimals}f}"
+def format_fixed_decimals(value, decimals=5):
+    if np.isscalar(value):
+        return f"{float(value):.{decimals}f}"
 
-#     arr = np.asarray(value)
-#     return np.array2string(
-#         arr,
-#         separator=", ",
-#         formatter={"float_kind": lambda x: f"{x:.{decimals}f}"}
-#    )
+    arr = np.asarray(value)
+    return np.array2string(
+        arr,
+        separator=", ",
+        formatter={"float_kind": lambda x: f"{x:.{decimals}f}"}
+   )
 
 
 paths = [ # Cabernet Sauvignon 100.000 L
-    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx",
-    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 61.xlsx",
-    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 EL BOLDO estanque 55.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 BOLDO estanque 30.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 EL BOLDO estanque 55.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 61.xlsx",
     # Syrah 100.000 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU+VAL+FN estanque 36.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 VAL+STARAQ estanque 56.xlsx",
@@ -84,6 +84,7 @@ def build_datasets(paths):
         datasets.append(dataset)
         # print(f"Dataset construido para: {path}")
         # print(f"Condiciones iniciales (x0): {format_fixed_decimals(dataset['x0'])}")
+        # print(f"Cantidad de datos en el perfil de azúcares: {len(dataset['sugars_profile'])}")
 
     return datasets
 

@@ -1,0 +1,27 @@
+{
+  "best_result": {
+    "combo_id": 1.0,
+    "c1": 1.5,
+    "c2": 1.5,
+    "w": 0.7,
+    "pop_size": 25.0,
+    "n_folds_failed": 0.0,
+    "mean_train_cost": 0.02640184178385943,
+    "std_train_cost": 0.012023140545208238,
+    "mean_val_cost": 0.0197138026162944,
+    "std_val_cost": 0.016045859620005987,
+    "min_val_cost": 0.004358166403348652,
+    "max_val_cost": 0.04155380038366778
+  },
+  "total_elapsed_seconds": 3550.8709216001444,
+  "total_elapsed_human": "59 min 10.87 s",
+  "n_datasets": 5,
+  "n_folds": 5,
+  "n_combinations": 1,
+  "n_total_pso_runs": 5,
+  "output_files": {
+    "fold_results": "c:\\Users\\p-mfolch\\Documents\\Proyecto_Tintos_CyT\\Códigos_oficiales\\codigos_optimizacion\\hiperparametros\\resultados_cv_pso_20260408_160535\\cv_fold_results.xlsx",
+    "combo_summary": "c:\\Users\\p-mfolch\\Documents\\Proyecto_Tintos_CyT\\Códigos_oficiales\\codigos_optimizacion\\hiperparametros\\resultados_cv_pso_20260408_160535\\cv_combo_summary.xlsx",
+    "best_result_json": "c:\\Users\\p-mfolch\\Documents\\Proyecto_Tintos_CyT\\Códigos_oficiales\\codigos_optimizacion\\hiperparametros\\resultados_cv_pso_20260408_160535\\best_result.json"
+  }
+}

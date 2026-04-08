@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from pymoo.core.problem import Problem
 from pymoo.algorithms.soo.nonconvex.pso import PSO as PymooPSO
 from pymoo.optimize import minimize
+from pymoo.core.termination import Termination
+from pymoo.termination import get_termination
+from pymoo.termination.collection import TerminationCollection
 
 CURRENT_DIR = os.path.dirname(__file__)
 PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
@@ -37,14 +40,15 @@ BOUNDS_DICT = {
 }
 
 PSO_CONFIG = {
-    "epoch": 500,
+    "epoch": 1000,
     "pop_size": 25,
     "w": 0.7,
     "c1": 1.5,
     "c2": 1.5,
     "seed": 123,
-    "verbose": False,
-    "save_history": False,
+    "verbose": True,
+    "save_history": True,
+    "relative_gap_threshold": 0.01,
 }
 
 MODEL_2264 = {
@@ -316,6 +320,41 @@ class FermentationPymooProblem(Problem):
         )
         out["F"] = F.reshape(-1, 1)
 
+class RelativeGapTermination(Termination):
+    def __init__(self, threshold=0.05, eps=1e-12):
+        super().__init__()
+        self.threshold = threshold
+        self.eps = eps
+        self.last_f_avg = None
+        self.last_f_min = None
+        self.last_ratio = None
+        self.stop_iteration = None
+        self.stop_reason = None
+
+    def _update(self, algorithm):
+        F = algorithm.pop.get("F")
+
+        if F is None or len(F) == 0:
+            return 0.0
+
+        F = np.asarray(F, dtype=float).reshape(-1)
+
+        f_avg = float(np.mean(F))
+        f_min = float(np.min(F))
+
+        denom = max(abs(f_min), self.eps)
+        ratio = (f_avg - f_min) / denom
+
+        self.last_f_avg = f_avg
+        self.last_f_min = f_min
+        self.last_ratio = ratio
+
+        if ratio < self.threshold:
+            self.stop_iteration = algorithm.n_gen
+            self.stop_reason = "relative_gap"
+            return 1.0
+
+        return 0.0
 
 def run_pymoo_estimation(
     model_structure,
@@ -334,6 +373,7 @@ def run_pymoo_estimation(
     seed = config["seed"]
     verbose = config["verbose"]
     save_history = config.get("save_history", False)
+    relative_gap_threshold = config.get("relative_gap_threshold", 0.05)
 
     lb = np.array([b[0] for b in bounds], dtype=float)
     ub = np.array([b[1] for b in bounds], dtype=float)
@@ -354,10 +394,21 @@ def run_pymoo_estimation(
         adaptive=False
     )
 
+    relative_gap_termination = RelativeGapTermination(
+        threshold=relative_gap_threshold
+    )
+
+    max_gen_termination = get_termination("n_gen", epoch)
+
+    termination = TerminationCollection(
+        relative_gap_termination,
+        max_gen_termination
+    )
+
     pymoo_result = minimize(
         problem,
         algorithm,
-        termination=("n_gen", epoch),
+        termination=termination,
         seed=seed,
         verbose=verbose,
         save_history=save_history,
@@ -378,6 +429,31 @@ def run_pymoo_estimation(
 
     best_params = build_full_params(best_theta, free_names, fixed_params)
 
+    if relative_gap_termination.stop_iteration is None:
+        stop_iteration = pymoo_result.algorithm.n_gen
+        stop_reason = "max_epoch"
+    else:
+        stop_iteration = relative_gap_termination.stop_iteration
+        stop_reason = relative_gap_termination.stop_reason
+
+    final_ratio = relative_gap_termination.last_ratio
+    final_f_avg = relative_gap_termination.last_f_avg
+    final_f_min = relative_gap_termination.last_f_min
+
+    if final_ratio is None:
+        F = pymoo_result.pop.get("F")
+        F = np.asarray(F, dtype=float).reshape(-1)
+
+        final_f_avg = float(np.mean(F))
+        final_f_min = float(np.min(F))
+
+        denom = max(abs(final_f_min), 1e-12)
+        final_ratio = (final_f_avg - final_f_min) / denom
+
+    print(f"Motivo de término: {stop_reason}")
+    print(f"Iteración de término: {stop_iteration}")
+    print(f"Valor final de (f_avg - f_min)/f_min: {final_ratio:.6f}")
+
     result = {
         "x": best_theta,
         "fun": best_cost,
@@ -387,6 +463,15 @@ def run_pymoo_estimation(
         },
         "method": "pso_pymoo",
         "raw_result": pymoo_result,
+        "termination_info": {
+            "stop_reason": stop_reason,
+            "stop_iteration": stop_iteration,
+            "final_ratio": final_ratio,
+            "final_f_avg": final_f_avg,
+            "final_f_min": final_f_min,
+            "threshold": relative_gap_threshold,
+            "max_epoch": epoch,
+        }
     }
 
     return result, best_params
