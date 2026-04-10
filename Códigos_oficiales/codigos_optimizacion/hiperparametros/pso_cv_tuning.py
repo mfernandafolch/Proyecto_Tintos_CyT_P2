@@ -5,6 +5,8 @@ import time
 import traceback
 from itertools import product
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime
+from multiprocessing import current_process
 
 import numpy as np
 import pandas as pd
@@ -29,6 +31,22 @@ def format_elapsed(seconds):
     minutes = int(seconds // 60)
     rem_seconds = seconds - 60 * minutes
     return f"{minutes} min {rem_seconds:.2f} s" if minutes else f"{rem_seconds:.2f} s"
+
+
+def format_elapsed_hms(seconds):
+    total_seconds = int(round(seconds))
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, secs = divmod(remainder, 60)
+    return f"{hours} h {minutes} min {secs} s"
+
+
+def log_fold_completion(combo_id, fold_id, elapsed_seconds):
+    worker_name = current_process().name
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(
+        f"[{timestamp}] worker={worker_name} | combo_id={combo_id} | fold_id={fold_id} | "
+        f"duracion={format_elapsed_hms(elapsed_seconds)}"
+    )
 
 
 def build_datasets(paths, t_muestreo=3.0):
@@ -197,6 +215,7 @@ def evaluate_single_fold(
         )
 
         elapsed_seconds = time.perf_counter() - t0
+        log_fold_completion(combo["combo_id"], fold_id, elapsed_seconds)
 
         return {
             "combo_id": combo["combo_id"],
@@ -216,6 +235,7 @@ def evaluate_single_fold(
 
     except Exception as e:
         elapsed_seconds = time.perf_counter() - t0
+        log_fold_completion(combo["combo_id"], fold_id, elapsed_seconds)
 
         return {
             "combo_id": combo["combo_id"],
