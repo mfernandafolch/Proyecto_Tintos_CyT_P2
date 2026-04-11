@@ -27,7 +27,7 @@ def main():
 
     c1_options = [1.5]
     c2_options = [1.5, 1.7]
-    w_options = [0.5, 0.7]
+    w_options = [0.7]
     pop_size_options = [25]
 
     base_pso_config = PSO_CONFIG.copy()

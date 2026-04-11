@@ -46,19 +46,25 @@ paths = [ # Cabernet Sauvignon 100.000 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 AURORA + STA MARTA estanque 57.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 STA MARTA estanque 62.xlsx",
     # Carmenere 100.000 L
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 31.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 59.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 62.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 25 F.N. estanque 68.xlsx",
-    # Cabernet Sauvignon 80.000 L
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 31.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 59.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 62.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 25 F.N. estanque 68.xlsx",
+    # 80.000 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\80.000 L\Data CS 25 BOLDO + STA MARTA estanque 41.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\80.000 L\Data CS 25 EL BOLDO (C88 - 89) estanque 50.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\80.000 L\Data CS+MA 24 COL+JMU+IVALDES estanque 41.xlsx",
-    # Cabernet Sauvignon 52.400 L
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\80.000 L\Data CA 25 VAL estanque 38.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\80.000 L\Data ME 24 QAGUA estanque 48.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\80.000 L\Data ME 25 Q. AGUA estanque 40.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\80.000 L\Data ME 25 Q. AGUA estanque 45.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\80.000 L\Data SY 24 LOU estanque 41.xlsx",
+    # 52.400 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 24 BOLDO estanque 159.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 25 EL BOLDO estanque 133.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 24 RH+BOLDO estanque 140.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 24 CONQ+IVALDES estanque 144.xlsx",
+    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\52.400 L\Data CA 25 LOU estanque 150.xlsx",
     # Cabernet Sauvignon 29.000 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\29.000 L\Data CS 24 ARE estanque 210.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\29.000 L\Data CS 25 P. VALDES estanque 219.xlsx"
@@ -82,9 +88,9 @@ def build_datasets(paths):
             "Et_final_exp": data_excel[6],
         }
         datasets.append(dataset)
-        # print(f"Dataset construido para: {path}")
-        # print(f"Condiciones iniciales (x0): {format_fixed_decimals(dataset['x0'])}")
-        # print(f"Cantidad de datos en el perfil de azúcares: {len(dataset['sugars_profile'])}")
+        print(f"Dataset construido para: {path}")
+        print(f"Condiciones iniciales (x0): {format_fixed_decimals(dataset['x0'])}")
+        print(f"Cantidad de datos en el perfil de azúcares: {len(dataset['sugars_profile'])}")
 
     return datasets
 
