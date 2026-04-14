@@ -1,0 +1,92 @@
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 BOLDO estanque 30.xlsx
+Condiciones iniciales (x0): [0.03703, 0.12959, 121.17482, 121.17482, 0.00000]
+Cantidad de datos en el perfil de azúcares: 62
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx
+Condiciones iniciales (x0): [0.03258, 0.14120, 122.21625, 122.21625, 0.00000]
+Cantidad de datos en el perfil de azúcares: 48
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 EL BOLDO estanque 55.xlsx
+Condiciones iniciales (x0): [0.05950, 0.23386, 118.59993, 118.59993, 0.00000]
+Cantidad de datos en el perfil de azúcares: 47
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU+VAL+FN estanque 36.xlsx
+Condiciones iniciales (x0): [0.06291, 0.14862, 119.32777, 119.32777, 0.00000]
+Cantidad de datos en el perfil de azúcares: 36
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 VAL+STARAQ estanque 56.xlsx
+Condiciones iniciales (x0): [0.02550, 0.14379, 121.05225, 121.05225, 0.00000]
+Cantidad de datos en el perfil de azúcares: 35
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU estanque 62.xlsx
+Condiciones iniciales (x0): [0.05950, 0.28657, 121.60000, 121.60000, 0.00000]
+Cantidad de datos en el perfil de azúcares: 40
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 Q. AGUA estanque 85.xlsx
+Condiciones iniciales (x0): [0.05950, 0.14987, 120.99569, 120.99569, 0.00000]
+Cantidad de datos en el perfil de azúcares: 49
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 24 QAGUA estanque 54.xlsx
+Condiciones iniciales (x0): [0.03853, 0.14248, 121.00000, 121.00000, 0.00000]
+Cantidad de datos en el perfil de azúcares: 41
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 AURORA + STA MARTA estanque 57.xlsx
+Condiciones iniciales (x0): [0.05950, 0.14970, 121.38906, 121.38906, 0.00000]
+Cantidad de datos en el perfil de azúcares: 52
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 STA MARTA estanque 62.xlsx
+Condiciones iniciales (x0): [0.20000, 0.15121, 121.10926, 121.10926, 0.00000]
+Cantidad de datos en el perfil de azúcares: 35
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 62.xlsx
+Condiciones iniciales (x0): [0.07303, 0.13259, 121.85446, 121.85446, 0.00000]
+Cantidad de datos en el perfil de azúcares: 64
+Dataset construido para: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 25 F.N. estanque 68.xlsx
+Condiciones iniciales (x0): [0.05950, 0.14533, 121.08570, 121.08570, 0.00000]
+Cantidad de datos en el perfil de azúcares: 54
+
+=== RESULTADO FINAL ===
+Método: pso_pymoo
+Mejor costo total: 0.4161818553677894
+Tiempo total de optimización: 47 min 21.78 s
+
+Vector ordenado de parámetros:
+mu0: 0.47047601812319406
+betaG0: 3.0988020709449073
+betaF0: 4.852078904668317
+Kn0: 0.009647
+Kg0: 8.551854
+Kf0: 7.16565
+Kig0: 44.15067
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 1.0034902280423204
+Yxg: 6.030732643392028
+Yxf: 1.642634
+Yeg: 0.4995781120314859
+Yef: 0.31337809377122033
+Número de parámetros: 14
+
+=== COSTO DE VALIDACION POR SET ===
+
+Set 1: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 61.xlsx
+  Costo total J: 0.012166
+  Error azucar (promedio): 0.010051
+  Error etanol final: 0.002115
+  E_final simulado: 84.3357 g/L
+  E_final experimental: 88.4016 g/L
+
+Set 2: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 25 LOU estanque 30.xlsx
+  Costo total J: 0.159116
+  Error azucar (promedio): 0.020797
+  Error etanol final: 0.138319
+  E_final simulado: 65.4389 g/L
+  E_final experimental: 104.1876 g/L
+
+Set 3: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 31.xlsx
+  Costo total J: 0.107989
+  Error azucar (promedio): 0.049622
+  Error etanol final: 0.058367
+  E_final simulado: 70.6361 g/L
+  E_final experimental: 93.1374 g/L
+
+Set 4: C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 59.xlsx
+  Costo total J: 0.021389
+  Error azucar (promedio): 0.015108
+  Error etanol final: 0.006281
+  E_final simulado: 86.8890 g/L
+  E_final experimental: 80.5086 g/L
+
+=== RESUMEN GLOBAL VALIDACION ===
+Costo total acumulado: 0.300660
+Costo promedio por set: 0.075165
