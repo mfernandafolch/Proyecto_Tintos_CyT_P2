@@ -42,7 +42,7 @@ from pymoo_opt import (
 # CONFIGURACIÓN GENERAL
 # ============================================================
 
-N_ITERATIONS = 20
+N_ITERATIONS = 5
 N_VALIDATION = 4
 N_TRAIN = 12
 MAX_WORKERS = 5
@@ -60,7 +60,7 @@ CUSTOM_PSO_CONFIG["c2"] = 1.5
 CUSTOM_PSO_CONFIG["seed"] = 123
 CUSTOM_PSO_CONFIG["verbose"] = False
 CUSTOM_PSO_CONFIG["save_history"] = False
-CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 0.001
+CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 1e-5 # antes estaba en 1e-3
 
 
 # ============================================================

@@ -262,6 +262,10 @@ def objective_function_multi(
     datasets,
     penalty=1e12
 ):
+    n_fermentations = len(datasets)
+    if n_fermentations == 0:
+        raise ValueError("datasets no puede estar vacío")
+
     total_cost = 0.0
 
     for data in datasets:
@@ -279,7 +283,7 @@ def objective_function_multi(
             penalty=penalty
         )
 
-    return float(total_cost)
+    return float(total_cost / n_fermentations)
 
 
 def objective_function_swarm_multi(

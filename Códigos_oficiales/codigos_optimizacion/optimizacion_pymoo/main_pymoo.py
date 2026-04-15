@@ -110,7 +110,7 @@ pso_config["c1"] = 1.5
 pso_config["c2"] = 1.5
 pso_config["seed"] = 123
 pso_config["verbose"] = True
-pso_config["relative_gap_threshold"] = 0.001 
+pso_config["relative_gap_threshold"] = 1e-5
 # criterio de convergencia: si el gap relativo entre el mejor costo y el promedio de los costos 
 # de la población es menor a este umbral, se detiene la optimización.
 
