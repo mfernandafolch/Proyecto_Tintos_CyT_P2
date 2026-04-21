@@ -42,17 +42,17 @@ from pymoo_opt import (
 # CONFIGURACIÓN GENERAL
 # ============================================================
 
-N_ITERATIONS = 5
+N_ITERATIONS = 20
 N_VALIDATION = 4
 N_TRAIN = 12
-MAX_WORKERS = 5
+MAX_WORKERS = 7
 
 OUTPUT_BASENAME = "resultados_cv_pymoo_100k"
 
 MODEL_STRUCTURE = MODEL_2264
 
 CUSTOM_PSO_CONFIG = PSO_CONFIG.copy()
-CUSTOM_PSO_CONFIG["epoch"] = 1000
+CUSTOM_PSO_CONFIG["epoch"] = 2000
 CUSTOM_PSO_CONFIG["pop_size"] = 25
 CUSTOM_PSO_CONFIG["w"] = 0.5
 CUSTOM_PSO_CONFIG["c1"] = 1.5
@@ -60,7 +60,7 @@ CUSTOM_PSO_CONFIG["c2"] = 1.5
 CUSTOM_PSO_CONFIG["seed"] = 123
 CUSTOM_PSO_CONFIG["verbose"] = False
 CUSTOM_PSO_CONFIG["save_history"] = False
-CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 1e-5 # antes estaba en 1e-3
+CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 1e-4 # antes estaba en 1e-3
 
 
 # ============================================================

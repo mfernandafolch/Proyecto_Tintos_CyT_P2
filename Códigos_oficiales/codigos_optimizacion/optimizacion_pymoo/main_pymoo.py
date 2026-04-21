@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import numpy as np
+import matplotlib.pyplot as plt
 
 CURRENT_DIR = os.path.dirname(__file__)
 PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
@@ -32,24 +33,24 @@ def format_fixed_decimals(value, decimals=5):
 
 paths = [ # Cabernet Sauvignon 100.000 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 BOLDO estanque 30.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 EL BOLDO estanque 55.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 61.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 EL BOLDO estanque 55.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 61.xlsx",
     # Syrah 100.000 L
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU+VAL+FN estanque 36.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU+VAL+FN estanque 36.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 VAL+STARAQ estanque 56.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU estanque 62.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 25 LOU estanque 30.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU estanque 62.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 25 LOU estanque 30.xlsx",
     # Merlot 100.000 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 Q. AGUA estanque 85.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 24 QAGUA estanque 54.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 AURORA + STA MARTA estanque 57.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 24 QAGUA estanque 54.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 AURORA + STA MARTA estanque 57.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 25 STA MARTA estanque 62.xlsx",
     # Carmenere 100.000 L
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 31.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 59.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 62.xlsx",
-    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 25 F.N. estanque 68.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 31.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 59.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 24 VAL estanque 62.xlsx",
+    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 25 F.N. estanque 68.xlsx",
     # 80.000 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\80.000 L\Data CS 25 BOLDO + STA MARTA estanque 41.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\80.000 L\Data CS 25 EL BOLDO (C88 - 89) estanque 50.xlsx",
@@ -61,7 +62,7 @@ paths = [ # Cabernet Sauvignon 100.000 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\80.000 L\Data SY 24 LOU estanque 41.xlsx",
     # 52.400 L
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 24 BOLDO estanque 159.xlsx",
-    # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 25 EL BOLDO estanque 133.xlsx",
+    r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 25 EL BOLDO estanque 133.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 24 RH+BOLDO estanque 140.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\52.400 L\Data CS 24 CONQ+IVALDES estanque 144.xlsx",
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\52.400 L\Data CA 25 LOU estanque 150.xlsx",
@@ -110,7 +111,7 @@ pso_config["c1"] = 1.5
 pso_config["c2"] = 1.5
 pso_config["seed"] = 123
 pso_config["verbose"] = True
-pso_config["relative_gap_threshold"] = 1e-5
+pso_config["relative_gap_threshold"] = 0.01
 # criterio de convergencia: si el gap relativo entre el mejor costo y el promedio de los costos 
 # de la población es menor a este umbral, se detiene la optimización.
 
@@ -134,21 +135,61 @@ for name, value in zip(PARAM_ORDER, best_params_list):
     print(f"{name}: {value}")
 print("Número de parámetros:", len(best_params_list))
 
-# print("\n=== SIMULACIONES FINALES POR DATASET ===")
-# for i, dataset in enumerate(datasets, start=1):
-#     print(f"\nDataset {i}: {dataset['path']}")
-#     res_opt = simulate_system(
-#         dataset["x0"],
-#         dataset["t_rel"],
-#         dataset["temp"],
-#         dataset["Nadd"],
-#         dataset["t_span"],
-#         best_params_list
-#     )
-#     plot_simulation_with_data(
-#         res_opt,
-#         dataset["path"],
-#         dataset["sugars_profile"],
-#         dataset["Et_final_exp"]
-#     )
+print("\n=== SIMULACIONES FINALES POR DATASET ===")
+for i, dataset in enumerate(datasets, start=1):
+    print(f"\nDataset {i}: {dataset['path']}")
+    res_opt = simulate_system(
+        dataset["x0"],
+        dataset["t_rel"],
+        dataset["temp"],
+        dataset["Nadd"],
+        dataset["t_span"],
+        best_params_list
+    )
+
+    t_dias_data = dataset["t_rel"] / 24
+    t_dias_sim = res_opt.t / 24
+
+    y = res_opt.y.T
+
+    G = y[:,2]
+    F = y[:,3]
+    E = y[:,4]
+
+    sugar_sim = G + F
+
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+    ax2 = ax1.twinx()
+    ax1.set_title('Entrenamiento de modelo para CS 25 EL BOLDO estanque 133.')  # Título de la gráfica
+
+
+    line_sugar_data, = ax1.plot(t_dias_data, dataset["sugars_profile"], 'o', color='#00F2FE' ,label='Azúcar experimental (g/L)')
+    dot_etanol_data, = ax1.plot(t_dias_data[-1], dataset["Et_final_exp"], 'o', color = 'r', label = 'Etanol final experimental (g/L)')
+    line_sugar_sim, = ax1.plot(t_dias_sim, sugar_sim, '-', color='#00F2FE' ,label='Azúcar simulado (g/L)')
+    line_etanol_sim, = ax1.plot(t_dias_sim, E, '-', color = 'r', label = 'Etanol simulado (g/L)')
+
+    line_tp, = ax2.plot(t_dias_data,  dataset["temp"] - 273.15, '*-', alpha = 0.3, color='m', label='Temperatura Promedio (°C)')
+
+
+
+    ax1.set_xlabel('Tiempo (días)')
+    ax1.set_ylabel('Concentración (g/L)')
+    ax2.set_ylabel('Temperatura (°C)')
+
+    # lines = [line_tm, line_ts, line_tp, line_sp, line_dens]
+    lines = [line_sugar_data, line_sugar_sim, dot_etanol_data, line_etanol_sim, line_tp]
+
+    labels = [line.get_label() for line in lines]
+    ax1.legend(lines, labels, loc='center right')
+    plt.grid(True)
+
+
+    plt.show()
+
+    # plot_simulation_with_data(
+    #     res_opt,
+    #     dataset["path"],
+    #     dataset["sugars_profile"],
+    #     dataset["Et_final_exp"]
+    # )
 plot_pymoo_history(result)
