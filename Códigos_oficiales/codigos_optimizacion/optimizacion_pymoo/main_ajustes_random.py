@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Validación cruzada aleatoria repetida con pymoo PSO
-- 16 datasets de 100.000 L
-- En cada iteración: 12 ajuste / 4 validación
-- Sin repetir combinaciones de validación dentro de la misma corrida
+- 20 datasets CS de 100.000 L
+- Se separan 4 datasets una sola vez al inicio
+- En cada iteración: 5 ajuste usando solo los 12 restantes
+- Sin repetir combinaciones de ajuste dentro de la misma corrida
 - Ejecución paralela con workers
 - Guardado final a Excel
 - Seed fija solo para PSO, no para los splits aleatorios
@@ -42,10 +43,11 @@ from pymoo_opt import (
 # CONFIGURACIÓN GENERAL
 # ============================================================
 
-N_ITERATIONS = 20
-N_VALIDATION = 4
-N_TRAIN = 12
-MAX_WORKERS = 7
+N_ITERATIONS = 50
+N_VALIDATION = 0
+N_HOLDOUT = 4
+N_TRAIN = 5
+MAX_WORKERS = 5
 
 OUTPUT_BASENAME = "resultados_cv_pymoo_100k"
 
@@ -229,29 +231,29 @@ def build_all_datasets(datasets_info):
     return datasets_by_id
 
 
-def generate_unique_validation_splits(dataset_ids, n_validation, n_iterations):
-    all_combos = list(combinations(dataset_ids, n_validation))
+def generate_unique_validation_splits(dataset_ids, n_train, n_iterations, holdout_ids):
+    remaining_ids = sorted(set(dataset_ids) - set(holdout_ids))
+    all_combos = list(combinations(remaining_ids, n_train))
 
     max_possible = len(all_combos)
     if n_iterations > max_possible:
         raise ValueError(
             f"Se pidieron {n_iterations} iteraciones, pero solo existen "
-            f"{max_possible} combinaciones únicas de validación."
+            f"{max_possible} combinaciones únicas de ajuste con los datasets restantes."
         )
 
     selected = random.sample(all_combos, n_iterations)
 
     splits = []
-    all_ids_set = set(dataset_ids)
+    holdout_ids = tuple(sorted(holdout_ids))
 
-    for i, val_ids in enumerate(selected, start=1):
-        val_ids = tuple(sorted(val_ids))
-        train_ids = tuple(sorted(all_ids_set - set(val_ids)))
+    for i, train_ids in enumerate(selected, start=1):
+        train_ids = tuple(sorted(train_ids))
 
         splits.append({
             "iteration": i,
             "train_ids": train_ids,
-            "val_ids": val_ids,
+            "val_ids": holdout_ids,
         })
 
     return splits
@@ -284,11 +286,10 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
 
     iteration = split["iteration"]
     train_ids = split["train_ids"]
-    val_ids = split["val_ids"]
+    separated_ids = split["val_ids"]
 
     try:
         train_datasets = [datasets_by_id[i] for i in train_ids]
-        val_datasets = [datasets_by_id[i] for i in val_ids]
 
         result_fit, best_params = run_pymoo_estimation(
             model_structure=model_structure,
@@ -298,38 +299,9 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
 
         best_params_vector = params_dict_to_vector(best_params, PARAM_ORDER)
 
-        validation_costs = []
-        validation_details = []
-        for dataset in val_datasets:
-            sol = simulate_system(
-                x0=dataset["x0"],
-                t_rel=dataset["t_rel"],
-                temp=dataset["temp"],
-                Nadd=dataset["Nadd"],
-                tspan=dataset["t_span"],
-                params_list=best_params_vector
-            )
-
-            val_cost = compute_validation_cost(
-                sol=sol,
-                sugars_profile=dataset["sugars_profile"],
-                Et_final_exp=dataset["Et_final_exp"]
-            )
-            validation_costs.append(val_cost["objective_total"])
-            validation_details.append({
-                "iteracion": iteration,
-                "id_validacion": dataset["id"],
-                "nombre_validacion": dataset["name"],
-                "sugar_error_mean": val_cost["sugar_error_mean"],
-                "ethanol_error": val_cost["ethanol_error"],
-                "objective_total": val_cost["objective_total"],
-                "Et_final_sim": val_cost["Et_final_sim"],
-                "Et_final_exp": float(dataset["Et_final_exp"]),
-            })
-
         costo_ajuste = float(result_fit["fun"])
-        costo_validacion = float(np.sum(validation_costs))
-        costo_total = float(costo_ajuste + costo_validacion)
+        costo_validacion = 0.0
+        costo_total = float(costo_ajuste)
 
         elapsed = time.perf_counter() - start
         end_clock = datetime.now()
@@ -343,10 +315,12 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "duracion_min": float(elapsed / 60.0),
 
             "ids_ajuste": ",".join(map(str, train_ids)),
-            "ids_validacion": ",".join(map(str, val_ids)),
+            "ids_validacion": "",
+            "ids_separados": ",".join(map(str, separated_ids)),
 
             "nombres_ajuste": " | ".join(datasets_by_id[i]["name"] for i in train_ids),
-            "nombres_validacion": " | ".join(datasets_by_id[i]["name"] for i in val_ids),
+            "nombres_validacion": "",
+            "nombres_separados": " | ".join(datasets_by_id[i]["name"] for i in separated_ids),
 
             "costo_ajuste": costo_ajuste,
             "costo_validacion": costo_validacion,
@@ -378,7 +352,7 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "ok": True,
             "row": row,
             "summary": summary,
-            "validation_details": validation_details,
+            "validation_details": [],
         }
 
     except Exception as e:
@@ -392,10 +366,12 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "duracion_min": float(elapsed / 60.0),
 
             "ids_ajuste": ",".join(map(str, train_ids)),
-            "ids_validacion": ",".join(map(str, val_ids)),
+            "ids_validacion": "",
+            "ids_separados": ",".join(map(str, separated_ids)),
 
             "nombres_ajuste": " | ".join(datasets_by_id[i]["name"] for i in train_ids),
-            "nombres_validacion": " | ".join(datasets_by_id[i]["name"] for i in val_ids),
+            "nombres_validacion": "",
+            "nombres_separados": " | ".join(datasets_by_id[i]["name"] for i in separated_ids),
 
             "costo_ajuste": np.nan,
             "costo_validacion": np.nan,
@@ -442,15 +418,20 @@ def main():
     print("VALIDACIÓN CRUZADA ALEATORIA REPETIDA - PYMOO PSO")
     print("=" * 80)
 
-    if len(DATASETS_INFO) != 16:
-        raise ValueError(f"Se esperaban 16 datasets y hay {len(DATASETS_INFO)}.")
+    if len(DATASETS_INFO) == 0:
+        raise ValueError("DATASETS_INFO está vacío.")
 
     dataset_ids = [item["id"] for item in DATASETS_INFO]
 
-    if N_TRAIN + N_VALIDATION != len(dataset_ids):
-        raise ValueError("N_TRAIN + N_VALIDATION debe ser igual a 16.")
+    if N_TRAIN + N_HOLDOUT > len(dataset_ids):
+        raise ValueError(
+            "N_TRAIN + conjuntos separados no puede ser mayor al total de datasets."
+        )
 
-    total_possible = math.comb(len(dataset_ids), N_VALIDATION)
+    holdout_ids = tuple(sorted(random.sample(dataset_ids, N_HOLDOUT)))
+    remaining_ids = sorted(set(dataset_ids) - set(holdout_ids))
+    total_possible = math.comb(len(remaining_ids), N_TRAIN)
+    print(f"Sets separados fijos: {holdout_ids}")
     print(f"Cantidad total de combinaciones únicas posibles: {total_possible}")
     print(f"Iteraciones pedidas: {N_ITERATIONS}")
     print(f"Workers: {MAX_WORKERS}")
@@ -467,16 +448,17 @@ def main():
 
     splits = generate_unique_validation_splits(
         dataset_ids=dataset_ids,
-        n_validation=N_VALIDATION,
-        n_iterations=N_ITERATIONS
+        n_train=N_TRAIN,
+        n_iterations=N_ITERATIONS,
+        holdout_ids=holdout_ids,
     )
 
     print("\nSplits generados correctamente.")
-    print("Ejemplos de validación:")
+    print("Ejemplos de separación:")
     for split in splits[:min(5, len(splits))]:
         print(
             f"Iteración {split['iteration']:02d} -> "
-            f"validación {split['val_ids']} | ajuste {split['train_ids']}"
+            f"separados {split['val_ids']} | ajuste {split['train_ids']}"
         )
 
     results = []
@@ -512,7 +494,7 @@ def main():
                 print(
                     f"[{status}] Iteración {summary['iteracion']:03d} | "
                     f"Ajuste = {summary['costo_ajuste']:.6f} | "
-                    f"Validación = {summary['costo_validacion']:.6f} | "
+                    f"Separados = {summary['costo_validacion']:.6f} | "
                     f"Total = {summary['costo_total']:.6f} | "
                     f"Duración = {format_elapsed(summary['duracion_s'])} | "
                     f"Hora = {summary['hora_fin']}"
@@ -539,8 +521,6 @@ def main():
     print("=" * 80)
     print(f"Tiempo total: {format_elapsed(total_elapsed)}")
     print(f"Resultados guardados en: {output_excel}")
-    if validation_details_all:
-        print(f"Detalle de validación guardado en: {output_excel_details}")
 
     if results:
         df = pd.DataFrame(results).sort_values(by="iteracion").reset_index(drop=True)
@@ -556,7 +536,7 @@ def main():
 
                 print(f"Mejor iteración: {int(best_row['iteracion'])}")
                 print(f"Mejor costo total: {best_row['costo_total']:.6f}")
-                print(f"Validación de esa iteración: {best_row['ids_validacion']}")
+                print(f"Sets separados de esa iteración: {best_row['ids_separados']}")
 
 
 if __name__ == "__main__":

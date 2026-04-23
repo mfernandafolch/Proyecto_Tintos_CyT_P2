@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Gráficos de incertidumbre para 4 datasets elegidos al azar
-- Se eligen 4 de los 16 datasets antes de cargarlos
+Gráficos de incertidumbre para datasets de validación elegidos manualmente
+- Los datasets a graficar se indican explícitamente por ID
 - Se simula con el promedio de parámetros
 - Se construyen bandas con 100 simulaciones muestreadas
 - Se grafica azúcares (G+F) y etanol en un mismo eje
@@ -10,7 +10,6 @@ Gráficos de incertidumbre para 4 datasets elegidos al azar
 
 import os
 import sys
-import random
 from concurrent.futures import ProcessPoolExecutor
 from itertools import repeat
 import numpy as np
@@ -23,17 +22,17 @@ if PROJECT_DIR not in sys.path:
     sys.path.insert(0, PROJECT_DIR)
 
 from simulacion import data_for_simulation, simulate_system
-from pymoo_opt import PARAM_ORDER
+from pymoo_opt import PARAM_ORDER, compute_objective_breakdown
 
 
 # ============================================================
 # CONFIGURACIÓN GENERAL
 # ============================================================
 
-N_DATASETS_TO_PLOT = 4
+VALIDATION_DATASET_IDS = [3, 4, 11, 14]
+
 N_MONTE_CARLO = 100
 N_MONTE_CARLO_WORKERS = 4   # Si quieres serial, usa 1
-SEED_DATASET_SELECTION = None
 
 LOW_PERCENTILE = 5
 HIGH_PERCENTILE = 95
@@ -47,7 +46,7 @@ DATASETS_INFO = [
     {
         "id": 1,
         "name": "Data CS 24 EL BOLDO estanque 30.xlsx",
-        "path": r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 EL BOLDO estanque 30.xlsx",
+        "path": r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 BOLDO estanque 30.xlsx",
     },
     {
         "id": 2,
@@ -131,96 +130,78 @@ DATASETS_INFO = [
 # PARÁMETROS ESTIMADOS Y FIJOS
 # ============================================================
 
-# FREE_PARAM_SAMPLES = {
-#     "mu0": [
-#         0.295411929, 0.297014527, 0.533773573, 0.471389584, 0.343196835,
-#         0.380799596, 0.142087516, 0.465845354, 0.249348931, 0.470460407,
-#         0.471740849, 0.324577319, 0.238574863, 0.204083214, 0.605232513,
-#         0.15794396, 0.403636819, 0.19313678, 0.252934845, 0.426851603
-#     ],
-#     "betaG0": [
-#         1.080712012, 2.512098003, 2.285402627, 2.449770162, 3.197019981,
-#         2.320937909, 0.459905866, 2.295248634, 2.372804833, 3.150002935,
-#         1.102587559, 2.319700056, 2.392300558, 2.407000078, 2.904414124,
-#         2.355137149, 0.807629742, 2.238263563, 2.540497964, 2.360635614
-#     ],
-#     "betaF0": [
-#         4.153414964, 2.779960659, 5.997210589, 4.988556796, 4.17234724,
-#         1.822644048, 5.468148421, 4.96168605, 5.34130598, 6.672897945,
-#         4.391512518, 3.369434653, 3.401605806, 5.239593338, 6.313410682,
-#         5.10021909, 4.027143028, 1.466105855, 4.488571402, 5.414511459
-#     ],
-#     "Yxn": [
-#         1.745039102, 1.71175839, 0.867881891, 1.038609207, 1.10832363,
-#         2.529317183, 4.205276318, 1.101102385, 1.311327473, 0.691296406,
-#         1.596560452, 1.692008454, 1.529744449, 1.137591756, 0.878490921,
-#         1.118415254, 2.383885966, 3.038121996, 1.184006702, 0.919329572
-#     ],
-#     "Yxg": [
-#         7.389187861, 9.085213555, 8.955822973, 4.577804506, 4.227848729,
-#         7.898741687, 7.659911066, 4.873825349, 8.248374652, 3.70298829,
-#         4.803379149, 3.973952461, 5.969584936, 5.287290884, 9.776594213,
-#         8.286461038, 2.799187003, 5.109769674, 9.147167269, 5.706533844
-#     ],
-#     "Yeg": [
-#         0.161936722, 0.38987209, 0.23209247, 0.261866101, 0.358200693,
-#         0.386525565, 0.283368092, 0.281458215, 0.392785477, 0.285709958,
-#         0.170812153, 0.354638236, 0.339182086, 0.241697779, 0.25216673,
-#         0.25084903, 0.211713606, 0.43052186, 0.309339266, 0.186004467
-#     ],
-#     "Yef": [
-#         0.724518619, 0.451747082, 0.718240177, 0.63704131, 0.486592373,
-#         0.553385568, 0.511414531, 0.603363562, 0.414395511, 0.600884368,
-#         0.834661984, 0.517544357, 0.499847367, 0.65252543, 0.753590037,
-#         0.705318143, 0.566817513, 0.462779224, 0.537615999, 4.511779167
-#     ],
-# }
-
 FREE_PARAM_SAMPLES = {
     "mu0": [
-        0.429232, 0.300772, 0.540511, 0.369928, 0.56355,
-        0.266929, 0.690085, 0.408285, 0.339927, 0.101204,
-        0.291113, 0.391508, 0.22056, 0.401322, 0.332422,
-        0.609936, 0.252887, 0.12306, 0.417153, 0.177445
+        0.491229299, 0.095340553, 0.238672303, 0.221547458, 0.07104641,
+        0.12976963, 0.231232081, 0.354456824, 0.1937975, 0.475079259,
+        0.140094304, 0.107069743, 0.139436427, 0.195722029, 0.244354817,
+        0.184323781, 0.135908409, 0.65230297, 0.132546263, 0.194138162,
+        0.378589292, 0.175524911, 0.13869564, 0.052075002, 0.095131473,
+        0.32234151, 0.659623274, 0.114620491, 0.10043929, 0.174521479,
+        0.109659677, 0.110052645, 0.126059526, 0.078883809, 0.590272845,
+        0.576184099, 0.104120613, 0.153257031, 0.251328635, 0.189262873
     ],
     "betaG0": [
-        2.530121, 1.482565, 5.516991, 2.513899, 3.43364,
-        3.614741, 2.752357, 2.347902, 3.096242, 2.221298,
-        2.163165, 3.94497, 3.946272, 3.010209, 2.897282,
-        3.59964, 1.265705, 2.261852, 6.161594, 0.443155
+        1.527080488, 4.850514939, 1.478940534, 1.76326327, 3.373843967,
+        1.100316472, 1.718642886, 2.895646997, 1.305003993, 1.794283092,
+        2.576571471, 0.841086908, 1.437590477, 1.841314976, 1.688151119,
+        2.414963856, 3.303807082, 2.077030753, 3.893671185, 3.844084631,
+        2.614446602, 4.157755196, 0.350965451, 1.813710079, 1.351497672,
+        1.999131619, 4.44825999, 1.28223395, 4.380033293, 2.675765457,
+        2.955778978, 4.425205877, 0.808980602, 1.989834202, 0.729672539,
+        1.766676532, 0.699872842, 4.285815386, 1.865459686, 2.11834583
     ],
     "betaF0": [
-        3.610357, 5.808683, 4.908505, 3.625219, 4.174307,
-        2.302442, 4.52476, 5.535365, 3.19016, 4.878467,
-        5.197606, 2.697402, 3.865184, 3.07514, 2.478192,
-        5.788337, 3.522598, 1.130274, 2.147087, 4.212983
+        1.92590658, 1.723227134, 1.137318706, 3.882215806, 2.332203388,
+        3.276464489, 2.997279946, 2.441717888, 2.162669254, 1.536080827,
+        2.857324395, 1.393066348, 1.175148555, 1.142151868, 1.102068367,
+        1.364981481, 6.990838079, 0.78075657, 0.672554907, 1.236836131,
+        7.18444911, 1.475388007, 5.630079248, 1.566698496, 1.378767963,
+        1.405566722, 5.009808113, 3.399773246, 0.635675162, 0.817523635,
+        2.187237852, 0.283873011, 1.650555251, 3.112934964, 5.200407589,
+        1.797508526, 5.284849638, 2.536698845, 2.112764246, 0.720895014
     ],
     "Yxn": [
-        1.349339, 1.216049, 0.675158, 1.508696, 1.016328,
-        1.550675, 1.075364, 0.918069, 1.357078, 1.2805,
-        1.138175, 1.253011, 0.969892, 1.504033, 1.727465,
-        0.889418, 1.885855, 3.911248, 1.13034, 5.237114
+        3.310792386, 2.416260149, 4.748723377, 2.53667403, 2.176098557,
+        2.197292445, 2.354199463, 2.072011947, 3.533379451, 3.063003349,
+        1.945967411, 7.079418113, 6.527551915, 4.357026494, 5.073242529,
+        3.424252069, 0.659550545, 3.926339449, 3.921038779, 2.427412431,
+        1.212010681, 2.067521245, 2.484893202, 5.864961797, 5.70467776,
+        3.56606508, 0.852325571, 2.119873733, 2.951205022, 4.612656151,
+        2.655314944, 3.181449095, 6.346458486, 2.461554532, 1.992707409,
+        2.590517803, 4.555679189, 1.731053717, 3.834171821, 4.873346273
     ],
     "Yxg": [
-        5.262081, 8.893739, 9.293334, 5.532479, 4.896842,
-        3.440649, 6.714808, 5.889799, 3.978164, 9.357102,
-        9.742751, 9.995398, 4.208385, 7.48803, 9.990876,
-        9.712251, 8.289327, 3.955053, 6.790151, 5.398456
+        6.159759925, 9.991344746, 5.580413761, 7.027678957, 7.361149947,
+        5.625461807, 8.235517554, 8.140244314, 9.958499624, 9.871331923,
+        9.98318681, 5.10248585, 6.234102728, 9.522424884, 9.457671514,
+        9.999774574, 6.617629792, 7.04277773, 9.991795607, 9.960162077,
+        9.99304943, 9.996226996, 4.485346855, 4.20561476, 6.995949687,
+        6.164420288, 9.996898628, 5.667888267, 9.909192638, 9.998376888,
+        9.000361131, 6.395466734, 7.207737619, 5.914804949, 3.781537417,
+        1.625587102, 9.595856869, 5.697474361, 9.999686985, 9.997187093
     ],
     "Yeg": [
-        0.33006, 0.181159, 0.430907, 0.333779, 0.393989,
-        0.465767, 0.337843, 0.229901, 0.37277, 0.214047,
-        0.2781, 0.470643, 0.400133, 0.406942, 0.426763,
-        0.399363, 0.182402, 0.458743, 0.504936, 0.323383
+        0.310224655, 0.580738471, 0.358216272, 0.589804143, 0.422721152,
+        0.223618323, 0.334023374, 0.436034377, 0.274905805, 0.454176146,
+        0.342181722, 0.684141375, 0.320149437, 0.500510895, 0.566511753,
+        0.451717108, 0.269432437, 0.535934935, 0.570304104, 0.599681542,
+        0.348454432, 0.564328667, 0.13702885, 0.199169038, 0.272824981,
+        0.496602885, 0.412136781, 0.289485931, 0.602186605, 0.594369899,
+        0.393699066, 0.582809422, 0.606686477, 0.311984412, 0.209760328,
+        0.372835166, 0.485217522, 0.653406549, 0.67902188, 0.54004091
     ],
     "Yef": [
-        0.573812, 0.745132, 0.433895, 0.588612, 0.444443,
-        0.398876, 0.532936, 0.72095, 0.502666, 0.803548,
-        0.531734, 0.358471, 0.403999, 0.438762, 0.396696,
-        0.433997, 0.893252, 0.374362, 0.39841, 0.497197
+        0.546653089, 0.30876599, 0.608281052, 0.299320903, 0.412146877,
+        0.722679164, 0.529533277, 0.473879284, 0.593714051, 0.370208632,
+        0.511170627, 0.221356485, 0.547531004, 0.330054858, 0.269391646,
+        0.461103743, 0.639075928, 0.211397763, 0.275390951, 0.192598341,
+        0.53600703, 0.208208705, 0.6156564, 0.795467102, 0.706479051,
+        0.355080876, 0.626596208, 0.508933506, 0.146048629, 0.255788255,
+        0.471549057, 0.100000301, 0.253045962, 0.529204287, 0.641928988,
+        0.540505426, 0.421995461, 0.223571637, 0.2256859, 0.278345778
     ],
 }
-
 
 FIXED_PARAMS = {
     "Kn0": 0.009647,
@@ -292,10 +273,23 @@ def sample_free_params():
 # UTILIDADES GENERALES
 # ============================================================
 
-def choose_random_datasets(datasets_info, n_to_choose, seed=None):
-    rng = random.Random(seed) if seed is not None else random
-    selected = rng.sample(datasets_info, n_to_choose)
-    return sorted(selected, key=lambda x: x["id"])
+def choose_datasets_by_ids(datasets_info, dataset_ids):
+    if len(dataset_ids) == 0:
+        raise ValueError("Debes entregar al menos un ID de dataset.")
+
+    if len(dataset_ids) != len(set(dataset_ids)):
+        raise ValueError(f"Hay IDs repetidos en VALIDATION_DATASET_IDS: {dataset_ids}")
+
+    dataset_map = {item["id"]: item for item in datasets_info}
+
+    missing_ids = [dataset_id for dataset_id in dataset_ids if dataset_id not in dataset_map]
+    if missing_ids:
+        raise ValueError(
+            f"Los siguientes IDs no existen en DATASETS_INFO: {missing_ids}"
+        )
+
+    selected = [dataset_map[dataset_id] for dataset_id in dataset_ids]
+    return selected
 
 
 def build_dataset(item):
@@ -316,6 +310,31 @@ def build_dataset(item):
 
 def build_param_vector(param_dict):
     return np.array([param_dict[name] for name in PARAM_ORDER], dtype=float)
+
+
+def compute_mean_validation_cost(dataset, params_dict):
+    params_vector = build_param_vector(params_dict)
+    params_for_objective = {name: float(value) for name, value in zip(PARAM_ORDER, params_vector)}
+
+    breakdown = compute_objective_breakdown(
+        theta=params_vector,
+        free_names=PARAM_ORDER,
+        fixed_params={},
+        x0=dataset["x0"],
+        t_rel=dataset["t_rel"],
+        temp=dataset["temp"],
+        Nadd=dataset["Nadd"],
+        t_span=dataset["t_span"],
+        sugars_profile=dataset["sugars_profile"],
+        Et_final_exp=dataset["Et_final_exp"],
+    )
+
+    return {
+        "objective_total": float(breakdown["objective_total"]),
+        "sugar_error_mean": float(breakdown["sugar_error_mean"]),
+        "ethanol_error": float(breakdown["ethanol_error"]),
+        "params": params_for_objective,
+    }
 
 
 def simulate_dataset(dataset, params_dict):
@@ -359,6 +378,7 @@ def run_single_monte_carlo_iteration(dataset):
 def run_uncertainty_simulations(dataset, n_mc, n_workers=None):
     mean_params = build_mean_param_dict()
     base_sim = simulate_dataset(dataset, mean_params)
+    validation_cost = compute_mean_validation_cost(dataset, mean_params)
 
     sugar_runs = []
     ethanol_runs = []
@@ -408,6 +428,7 @@ def run_uncertainty_simulations(dataset, n_mc, n_workers=None):
         "ethanol_low": ethanol_low,
         "ethanol_high": ethanol_high,
         "n_valid_runs": len(sugar_runs),
+        "validation_cost": validation_cost,
     }
 
 
@@ -416,8 +437,15 @@ def run_uncertainty_simulations(dataset, n_mc, n_workers=None):
 # ============================================================
 
 def plot_results(datasets, results):
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10), sharex=False, sharey=False)
-    axes = axes.flatten()
+    n_plots = len(datasets)
+
+    if n_plots == 4:
+        fig, axes = plt.subplots(2, 2, figsize=(14, 10), sharex=False, sharey=False)
+        axes = axes.flatten()
+    else:
+        fig, axes = plt.subplots(n_plots, 1, figsize=(12, 4 * n_plots), sharex=False, sharey=False)
+        if n_plots == 1:
+            axes = [axes]
 
     for ax, dataset, res in zip(axes, datasets, results):
         t_sim_days = res["time"] / 24.0
@@ -470,6 +498,16 @@ def plot_results(datasets, results):
             f"Simulaciones válidas: {res['n_valid_runs']}/{N_MONTE_CARLO}",
             fontsize=10
         )
+        ax.text(
+            0.02,
+            0.98,
+            f"Costo validación (params promedio): {res['validation_cost']['objective_total']:.6f}",
+            transform=ax.transAxes,
+            va="top",
+            ha="left",
+            fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="white", alpha=0.75, edgecolor="0.7"),
+        )
         ax.set_xlabel("Tiempo (días)")
         ax.set_ylabel("Concentración")
         ax.grid(True, alpha=0.3)
@@ -501,7 +539,7 @@ def plot_results(datasets, results):
 
 def main():
     print("=" * 80)
-    print("GRÁFICOS DE INCERTIDUMBRE - 4 DATASETS ALEATORIOS")
+    print("GRÁFICOS DE INCERTIDUMBRE - DATASETS DEFINIDOS MANUALMENTE")
     print("=" * 80)
 
     print("\nPromedios calculados:")
@@ -512,10 +550,12 @@ def main():
     for k, v in FREE_PARAM_STD.items():
         print(f"{k}: {v:.8f}")
 
-    selected_info = choose_random_datasets(
+    print("\nIDs solicitados para validación:")
+    print(VALIDATION_DATASET_IDS)
+
+    selected_info = choose_datasets_by_ids(
         DATASETS_INFO,
-        n_to_choose=N_DATASETS_TO_PLOT,
-        seed=SEED_DATASET_SELECTION
+        VALIDATION_DATASET_IDS
     )
 
     print("\nDatasets elegidos:")
@@ -528,6 +568,7 @@ def main():
         datasets.append(build_dataset(item))
 
     results = []
+    validation_costs = []
     for dataset in datasets:
         print(f"\nCorriendo simulaciones para set {dataset['id']:02d} - {dataset['name']}")
         res = run_uncertainty_simulations(
@@ -536,6 +577,14 @@ def main():
             n_workers=N_MONTE_CARLO_WORKERS
         )
         results.append(res)
+        validation_cost = res["validation_cost"]["objective_total"]
+        validation_costs.append(validation_cost)
+        print(f"Costo validación (promedio) set {dataset['id']:02d}: {validation_cost:.6f}")
+
+    print("\nResumen de costos de validación (promedio):")
+    for dataset, cost in zip(datasets, validation_costs):
+        print(f"  Set {dataset['id']:02d}: {cost:.6f}")
+    print(f"Suma de los cuatro: {float(np.sum(validation_costs)):.6f}")
 
     plot_results(datasets, results)
 
