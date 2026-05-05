@@ -1,3 +1,18 @@
+"""
+Módulo de optimización con PSO (pymoo) para ajustar parámetros del modelo de fermentación.
+
+Este archivo define:
+- El orden y los límites de los parámetros libres del modelo.
+- Una parametrización base del modelo 2264 con parámetros fijos y libres.
+- La simulación del sistema a partir de un vector de parámetros.
+- La función objetivo que compara la simulación con los datos experimentales.
+- El problema de optimización para pymoo y una condición de parada por brecha relativa.
+- La función principal `run_pymoo_estimation`, que ejecuta PSO sobre uno o varios datasets
+    y devuelve los mejores parámetros encontrados junto con el historial y metadatos de término.
+
+También incluye una utilidad para graficar la convergencia de la optimización.
+"""
+
 import os
 import sys
 import numpy as np
