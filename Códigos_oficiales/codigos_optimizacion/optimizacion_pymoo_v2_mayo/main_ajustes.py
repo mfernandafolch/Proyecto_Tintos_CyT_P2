@@ -173,8 +173,8 @@ def format_elapsed(seconds):
 
 def compute_validation_cost(sol, sugars_profile, Et_final_exp, penalty=1e12, eps=1e-8):
     y = sol.y.T
-    sugars_sim = np.asarray(y[:, 2] + y[:, 3], dtype=float)
-    Et_final_sim = float(y[-1, 4])
+    sugars_sim = np.asarray(y[:, 2], dtype=float)
+    Et_final_sim = float(y[-1, 3])
 
     sugars_profile = np.asarray(sugars_profile, dtype=float)
     Et_final_exp = float(Et_final_exp)
@@ -221,17 +221,34 @@ def build_all_datasets(datasets_info):
         path = item["path"]
         data_excel = data_for_simulation(path)
 
+        if isinstance(data_excel, dict):
+            x0 = np.asarray(data_excel["x0"], dtype=float)
+            t_rel = np.asarray(data_excel["t_rel"], dtype=float)
+            sugars_profile = np.asarray(data_excel["sugars_profile"], dtype=float)
+            temp = np.asarray(data_excel["temp_prom"], dtype=float)
+            Nadd = np.asarray(data_excel["Nadd"], dtype=float)
+            t_span = data_excel["tspan"]
+            Et_final_exp = float(data_excel["Et_final"])
+        else:
+            x0 = np.asarray(data_excel[0], dtype=float)
+            t_rel = np.asarray(data_excel[1], dtype=float)
+            sugars_profile = np.asarray(data_excel[2], dtype=float)
+            temp = np.asarray(data_excel[3], dtype=float)
+            Nadd = np.asarray(data_excel[4], dtype=float)
+            t_span = data_excel[5]
+            Et_final_exp = float(data_excel[6])
+
         datasets_by_id[item["id"]] = {
             "id": item["id"],
             "name": item["name"],
             "path": path,
-            "x0": data_excel[0],
-            "t_rel": data_excel[1],
-            "sugars_profile": data_excel[2],
-            "temp": data_excel[3],
-            "Nadd": data_excel[4],
-            "t_span": data_excel[5],
-            "Et_final_exp": data_excel[6],
+            "x0": x0,
+            "t_rel": t_rel,
+            "sugars_profile": sugars_profile,
+            "temp": temp,
+            "Nadd": Nadd,
+            "t_span": t_span,
+            "Et_final_exp": Et_final_exp,
         }
 
         print(f"[OK] Dataset {item['id']:02d}: {item['name']}")

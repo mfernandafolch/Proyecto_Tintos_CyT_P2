@@ -1,0 +1,355 @@
+VALIDACIÓN CRUZADA REPETIDA - PYMOO PSO
+================================================================================
+Sets separados fijos: (3, 4, 11, 14)
+Cantidad total de combinaciones únicas posibles: 792
+Iteraciones pedidas: 50
+Workers: 5
+Carpeta de salida: c:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Códigos_oficiales\codigos_optimizacion\optimizacion_pymoo_v2_mayo\resultados_cv_pymoo_100k_20260505_162406
+Archivo principal: c:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Códigos_oficiales\codigos_optimizacion\optimizacion_pymoo_v2_mayo\resultados_cv_pymoo_100k_20260505_162406\resultados_cv_pymoo_100k.xlsx
+Archivo de detalle: c:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Códigos_oficiales\codigos_optimizacion\optimizacion_pymoo_v2_mayo\resultados_cv_pymoo_100k_20260505_162406\resultados_cv_pymoo_100k_detalles_validacion.xlsx
+Semilla PSO fija: 123
+Sets separados definidos manualmente
+
+Construyendo datasets...
+[OK] Dataset 01: Data CS 24 EL BOLDO estanque 30.xlsx
+[OK] Dataset 02: Data CS 24 LOU estanque 54.xlsx
+[OK] Dataset 03: Data CS 25 EL BOLDO estanque 55.xlsx
+[OK] Dataset 04: Data CS 25 LOU estanque 61.xlsx
+[OK] Dataset 05: Data SY 24 LOU+VAL+FN estanque 36.xlsx
+[OK] Dataset 06: Data SY 24 VAL+STARAQ estanque 56.xlsx
+[OK] Dataset 07: Data SY 24 LOU estanque 62.xlsx
+[OK] Dataset 08: Data SY 25 LOU estanque 30.xlsx
+[OK] Dataset 09: Data ME 25 Q. AGUA estanque 85.xlsx
+[OK] Dataset 10: Data ME 24 QAGUA estanque 54.xlsx
+[OK] Dataset 11: Data ME 25 AURORA + STA MARTA estanque 57.xlsx
+[OK] Dataset 12: Data ME 25 STA MARTA estanque 62.xlsx
+[OK] Dataset 13: Data CA 24 VAL estanque 31.xlsx
+[OK] Dataset 14: Data CA 24 VAL estanque 59.xlsx
+[OK] Dataset 15: Data CA 24 VAL estanque 62.xlsx
+[OK] Dataset 16: Data CA 25 F.N. estanque 68.xlsx
+
+Splits generados correctamente.
+Ejemplos de separación:
+Iteración 01 -> separados (3, 4, 11, 14) | ajuste (1, 6, 7, 8, 16)
+Iteración 02 -> separados (3, 4, 11, 14) | ajuste (1, 2, 5, 8, 12)
+Iteración 03 -> separados (3, 4, 11, 14) | ajuste (7, 10, 12, 13, 16)
+Iteración 04 -> separados (3, 4, 11, 14) | ajuste (2, 5, 7, 8, 9)
+Iteración 05 -> separados (3, 4, 11, 14) | ajuste (2, 6, 9, 10, 15)
+
+Iniciando ejecución paralela...
+
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.000736
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 9.9411364
+Kn0: 0.009647
+Ks0: 199.54263
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 1.7749172
+Yxs: 7.2918792
+Yes: 0.53626114
+[OK] Iteración 004 | Ajuste = 0.038150 | Separados = 0.179469 | Total = 0.217620 | Duración = 131 min 48.02 s | Hora = 2026-05-05 18:36:05
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.006744
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 6.0837509
+Kn0: 0.009647
+Ks0: 90.82964
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.0041189
+Yxs: 3.500585
+Yes: 0.46893702
+[OK] Iteración 002 | Ajuste = 0.029548 | Separados = 0.145378 | Total = 0.174927 | Duración = 142 min 50.77 s | Hora = 2026-05-05 18:47:08
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.002299
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 11.468474
+Kn0: 0.009647
+Ks0: 87.96185
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 1.2470117
+Yxs: 5.5094685
+Yes: 0.49640099
+[OK] Iteración 001 | Ajuste = 0.044667 | Separados = 0.362802 | Total = 0.407468 | Duración = 183 min 11.81 s | Hora = 2026-05-05 19:27:29
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.001636
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 5.0820256
+Kn0: 0.009647
+Ks0: 69.718317
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.3963314
+Yxs: 3.2555434
+Yes: 0.45138508
+[OK] Iteración 003 | Ajuste = 0.026783 | Separados = 0.166575 | Total = 0.193359 | Duración = 202 min 53.03 s | Hora = 2026-05-05 19:47:10
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.003773
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 3.149451
+Kn0: 0.009647
+Ks0: 85.311828
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 4.034943
+Yxs: 2.9934919
+Yes: 0.44516729
+[OK] Iteración 005 | Ajuste = 0.044317 | Separados = 0.097484 | Total = 0.141801 | Duración = 271 min 15.76 s | Hora = 2026-05-05 20:55:33
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.000811
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 3.504508
+Kn0: 0.009647
+Ks0: 43.758381
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.4985257
+Yxs: 1.4155617
+Yes: 0.45651504
+[OK] Iteración 007 | Ajuste = 0.039591 | Separados = 0.097226 | Total = 0.136817 | Duración = 198 min 51.79 s | Hora = 2026-05-05 22:06:00
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.004803
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 7.1958091
+Kn0: 0.009647
+Ks0: 192.19082
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.2644607
+Yxs: 6.7056224
+Yes: 0.49490577
+[OK] Iteración 009 | Ajuste = 0.019708 | Separados = 0.122404 | Total = 0.142111 | Duración = 153 min 49.14 s | Hora = 2026-05-05 22:20:59
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.001333
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 3.9005462
+Kn0: 0.009647
+Ks0: 57.042994
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.2876688
+Yxs: 5.5542465
+Yes: 0.48099475
+[OK] Iteración 010 | Ajuste = 0.014597 | Separados = 0.102721 | Total = 0.117318 | Duración = 151 min 40.30 s | Hora = 2026-05-05 23:27:13
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.001762
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 2.3712261
+Kn0: 0.009647
+Ks0: 21.321607
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 3.2245876
+Yxs: 4.920705
+Yes: 0.46945675
+[OK] Iteración 008 | Ajuste = 0.016119 | Separados = 0.102488 | Total = 0.118607 | Duración = 292 min 35.17 s | Hora = 2026-05-06 00:20:04
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.004191
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 5.1755731
+Kn0: 0.009647
+Ks0: 36.267492
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 1.6754507
+Yxs: 2.3489918
+Yes: 0.45285113
+[OK] Iteración 011 | Ajuste = 0.031848 | Separados = 0.162166 | Total = 0.194014 | Duración = 163 min 42.47 s | Hora = 2026-05-06 00:49:42
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.002507
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 9.0847841
+Kn0: 0.009647
+Ks0: 3.4415713
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 0.72009513
+Yxs: 5.1853362
+Yes: 0.44912852
+[OK] Iteración 012 | Ajuste = 0.017225 | Separados = 0.526866 | Total = 0.544091 | Duración = 219 min 58.06 s | Hora = 2026-05-06 02:00:58
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.000724
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 1.7733618
+Kn0: 0.009647
+Ks0: 68.496117
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 7.4574034
+Yxs: 5.460167
+Yes: 0.48421149
+[OK] Iteración 006 | Ajuste = 0.026004 | Separados = 0.162240 | Total = 0.188244 | Duración = 445 min 17.27 s | Hora = 2026-05-06 02:01:23
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.005034
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 6.0176283
+Kn0: 0.009647
+Ks0: 83.041048
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.7567176
+Yxs: 2.8135074
+Yes: 0.46457883
+[OK] Iteración 013 | Ajuste = 0.026380 | Separados = 0.347102 | Total = 0.373482 | Duración = 191 min 59.76 s | Hora = 2026-05-06 02:39:13
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.006225
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 2.0906916
+Kn0: 0.009647
+Ks0: 47.642139
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 4.6918968
+Yxs: 2.160016
+Yes: 0.46651404
+[OK] Iteración 015 | Ajuste = 0.019354 | Separados = 0.116041 | Total = 0.135395 | Duración = 182 min 37.82 s | Hora = 2026-05-06 03:52:20
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.003860
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 1.676812
+Kn0: 0.009647
+Ks0: 38.263713
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 5.7998092
+Yxs: 6.4400995
+Yes: 0.4281354
+[OK] Iteración 014 | Ajuste = 0.027432 | Separados = 0.112136 | Total = 0.139568 | Duración = 217 min 2.63 s | Hora = 2026-05-06 03:57:07
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.001268
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 6.7983493
+Kn0: 0.009647
+Ks0: 101.62226
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.6089669
+Yxs: 3.7457269
+Yes: 0.51727149
+[OK] Iteración 017 | Ajuste = 0.031708 | Separados = 0.407513 | Total = 0.439222 | Duración = 154 min 14.92 s | Hora = 2026-05-06 04:35:38
+Motivo de término: max_epoch
+Iteración de término: 1707
+Valor final de (f_avg - f_min)/f_min: 0.000097
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 4.6264388
+Kn0: 0.009647
+Ks0: 94.483308
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.4480665
+Yxs: 6.518893
+Yes: 0.48364587
+[OK] Iteración 018 | Ajuste = 0.038621 | Separados = 0.124935 | Total = 0.163556 | Duración = 117 min 31.36 s | Hora = 2026-05-06 04:36:45
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.017113
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 8.788165
+Kn0: 0.009647
+Ks0: 133.23145
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 1.9196047
+Yxs: 4.7642568
+Yes: 0.49483998
+[OK] Iteración 016 | Ajuste = 0.049079 | Separados = 0.247699 | Total = 0.296778 | Duración = 171 min 18.56 s | Hora = 2026-05-06 04:52:16
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.001781
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 5.2119047
+Kn0: 0.009647
+Ks0: 99.18888
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.1179974
+Yxs: 3.9453089
+Yes: 0.4510222
+[OK] Iteración 020 | Ajuste = 0.015081 | Separados = 0.101294 | Total = 0.116375 | Duración = 168 min 26.70 s | Hora = 2026-05-06 06:45:34
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.002975
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 3.0892429
+Kn0: 0.009647
+Ks0: 14.257414
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 2.4423583
+Yxs: 4.5522441
+Yes: 0.4109555
+[OK] Iteración 019 | Ajuste = 0.039216 | Separados = 0.156097 | Total = 0.195313 | Duración = 200 min 1.25 s | Hora = 2026-05-06 07:12:21
+Motivo de término: max_epoch
+Iteración de término: 2001
+Valor final de (f_avg - f_min)/f_min: 0.003238
+
+Mejores parámetros encontrados:
+mu0: 0.277041
+betaS0: 3.5304508
+Kn0: 0.009647
+Ks0: 34.72279
+Kie0: 42.528284
+Kd0: 0.0001
+Yxn: 1.9603929
+Yxs: 4.5572689
+Yes: 0.42148546
+[OK] Iteración 021 | Ajuste = 0.013837 | Separados = 0.112018 | Total = 0.125855 | Duración = 171 min 45.01 s | Hora = 2026-05-06 07:27:22

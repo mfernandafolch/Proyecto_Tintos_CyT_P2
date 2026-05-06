@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 Validación cruzada aleatoria repetida con pymoo PSO
 - 20 datasets CS de 100.000 L
