@@ -1,11 +1,18 @@
-# -*- coding: utf-8 -*-
 """
-Gráficos de incertidumbre para datasets de validación elegidos manualmente
-- Los datasets a graficar se indican explícitamente por ID
-- Se simula con el promedio de parámetros
-- Se construyen bandas con 100 simulaciones muestreadas
-- Se grafica azúcares (G+F) y etanol en un mismo eje
-- Figura final en formato 2x2
+Validación con bandas Monte Carlo para:
+1) Azúcares totales S = G + F
+2) Etanol E
+
+Cada figura tiene 4 subplots, uno por cada dataset de validación.
+
+- Curva negra: simulación con mediana de los parámetros.
+- Sombra roja en 3 niveles:
+    - 5-95%   : banda externa
+    - 20-80%  : banda media
+    - 35-65%  : banda interna
+- Puntos azules:
+    - Azúcares: perfil experimental de azúcares.
+    - Etanol: valor experimental final de etanol.
 """
 
 import os
@@ -13,17 +20,20 @@ import sys
 import textwrap
 from concurrent.futures import ProcessPoolExecutor
 from itertools import repeat
+
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.stats import truncnorm
 
 
 CURRENT_DIR = os.path.dirname(__file__)
-PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
-if PROJECT_DIR not in sys.path:
-    sys.path.insert(0, PROJECT_DIR)
+MODEL_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
 
-from Códigos_oficiales.codigos_optimizacion.optimizacion_pymoo_v2_mayo.simulacion_v2 import data_for_simulation, simulate_system
-from pymoo_opt import PARAM_ORDER, compute_objective_breakdown
+if MODEL_DIR not in sys.path:
+    sys.path.insert(0, MODEL_DIR)
+
+from simulacion_coleman import data_for_simulation, simulate_system
+from pymoo_opt_coleman import PARAM_ORDER, compute_objective_breakdown
 
 
 # ============================================================
@@ -32,16 +42,37 @@ from pymoo_opt import PARAM_ORDER, compute_objective_breakdown
 
 VALIDATION_DATASET_IDS = [3, 4, 11, 14]
 
-N_MONTE_CARLO = 100
-N_MONTE_CARLO_WORKERS = 4   # Si quieres serial, usa 1
+N_MONTE_CARLO = 200
+N_MONTE_CARLO_WORKERS = 4
 
-LOW_PERCENTILE = 5
-HIGH_PERCENTILE = 95
-TITLE_WRAP_WIDTH = 40
+RANDOM_SEED = 123
+TITLE_WRAP_WIDTH = 42
+PENALTY_COST = 1e12
 
 
 # ============================================================
-# LISTA DE LOS 16 DATASETS 100.000 L
+# BOUNDS DE PARÁMETROS
+# ============================================================
+
+BOUNDS_DICT = {
+    "mu0": (1e-2, 1.0),
+    "betaG0": (1e-2, 10.0),
+    "betaF0": (1e-2, 10.0),
+    "Kn0": (1e-3, 1.0),
+    "Kg0": (1e-1, 100.0),
+    "Kf0": (1e-1, 100.0),
+    "Kig0": (1e-1, 100.0),
+    "Kie0": (1e-1, 100.0),
+    "Yxn": (1e-1, 10.0),
+    "Yxg": (1e-1, 10.0),
+    "Yxf": (1e-1, 10.0),
+    "Yeg": (1e-1, 10.0),
+    "Yef": (1e-1, 10.0),
+}
+
+
+# ============================================================
+# LISTA DE DATASETS
 # ============================================================
 
 DATASETS_INFO = [
@@ -132,7 +163,8 @@ DATASETS_INFO = [
 # PARÁMETROS ESTIMADOS Y FIJOS
 # ============================================================
 
-# Con los 50 datos
+# SIN ELIMINACIÓN
+
 FREE_PARAM_SAMPLES = {
     "mu0": [
         0.491229299, 0.095340553, 0.204922232, 0.238672303, 0.221547458,
@@ -220,7 +252,7 @@ FREE_PARAM_SAMPLES = {
     ],
 }
 
-# DATOS ELIMINACIÓN DE PUNTOS 1.
+## POST ELIMINACIÓN 1
 # FREE_PARAM_SAMPLES = {
 #     "mu0": [
 #         0.491229299, 0.095340553, 0.238672303, 0.221547458, 0.07104641,
@@ -294,7 +326,7 @@ FREE_PARAM_SAMPLES = {
 #     ],
 # }
 
-# DATOS ELIMINACIÓN DE PUNTOS 2.
+## POST ELIMINACIÓN 2
 # FREE_PARAM_SAMPLES = {
 #     "mu0": [
 #         0.491229299, 0.095340553, 0.238672303, 0.221547458, 0.07104641,
@@ -361,6 +393,7 @@ FREE_PARAM_SAMPLES = {
 #     ],
 # }
 
+
 FIXED_PARAMS = {
     "Kn0": 0.009647,
     "Kg0": 8.551854,
@@ -371,22 +404,13 @@ FIXED_PARAMS = {
     "Yxf": 1.642634,
 }
 
-# ============================================================
-# TIPO DE MUESTREO
-# ============================================================
-
-# Opciones:
-# "empirical" → samplea sets completos
-# "normal"    → samplea con distribución normal independiente
-SAMPLING_METHOD = "normal"
-
 
 # ============================================================
 # UTILIDADES DE PARÁMETROS
 # ============================================================
 
 def compute_free_param_statistics(free_param_samples):
-    free_param_mean = {}
+    free_param_median = {}
     free_param_std = {}
 
     for name, values in free_param_samples.items():
@@ -394,15 +418,22 @@ def compute_free_param_statistics(free_param_samples):
 
         if arr.ndim != 1:
             raise ValueError(f"Los valores de '{name}' deben ser una lista 1D.")
+
         if len(arr) < 2:
             raise ValueError(
                 f"'{name}' debe tener al menos 2 valores para calcular desviación estándar."
             )
 
-        free_param_mean[name] = float(np.mean(arr))
-        free_param_std[name] = float(np.std(arr, ddof=1))
+        if name not in BOUNDS_DICT:
+            raise ValueError(
+                f"El parámetro libre '{name}' no está en BOUNDS_DICT. "
+                "Agrega sus bounds antes de muestrearlo."
+            )
 
-    return free_param_mean, free_param_std
+        free_param_median[name] = float(np.nanmedian(arr))
+        free_param_std[name] = float(np.nanstd(arr, ddof=1))
+
+    return free_param_median, free_param_std
 
 
 def build_free_param_matrix(free_param_samples):
@@ -423,91 +454,114 @@ def build_free_param_matrix(free_param_samples):
     return free_names, matrix
 
 
-FREE_PARAM_MEAN, FREE_PARAM_STD = compute_free_param_statistics(FREE_PARAM_SAMPLES)
+FREE_PARAM_MEDIAN, FREE_PARAM_STD = compute_free_param_statistics(FREE_PARAM_SAMPLES)
 FREE_PARAM_NAMES, FREE_PARAM_MATRIX = build_free_param_matrix(FREE_PARAM_SAMPLES)
 
 
-def build_mean_param_dict():
+def build_median_param_dict():
     params = FIXED_PARAMS.copy()
-    params.update(FREE_PARAM_MEAN)
+    params.update(FREE_PARAM_MEDIAN)
+
+    missing_params = [name for name in PARAM_ORDER if name not in params]
+    if missing_params:
+        raise ValueError(
+            "Faltan parámetros para construir el vector completo según PARAM_ORDER: "
+            f"{missing_params}"
+        )
+
     return params
 
 
-def sample_positive_normal(mean_value, std_value, max_tries=1000):
-    if std_value <= 0:
-        return float(mean_value)
+def sample_truncated_normal_parameter(name, rng):
+    median_value = FREE_PARAM_MEDIAN[name]
+    std_value = FREE_PARAM_STD[name]
+    lb, ub = BOUNDS_DICT[name]
 
-    for _ in range(max_tries):
-        value = np.random.normal(loc=mean_value, scale=std_value)
-        if value > 0:
-            return float(value)
+    median_value = float(np.clip(median_value, lb, ub))
 
-    return float(max(mean_value, 1e-8))
+    if not np.isfinite(std_value) or std_value <= 0:
+        return median_value
 
+    a = (lb - median_value) / std_value
+    b = (ub - median_value) / std_value
 
-def sample_free_params_empirical():
-    """
-    Muestreo empírico por filas completas.
-
-    Mantiene juntas las combinaciones reales de parámetros:
-    mu0[i], betaG0[i], betaF0[i], Yxn[i], Yxg[i], Yeg[i], Yef[i].
-    """
-
-    n_sets = FREE_PARAM_MATRIX.shape[0]
-    idx = np.random.randint(0, n_sets)
-
-    sampled = {
-        name: float(FREE_PARAM_MATRIX[idx, j])
-        for j, name in enumerate(FREE_PARAM_NAMES)
-    }
-
-    return sampled
-
-
-def sample_free_params_normal():
-    """
-    Muestreo normal independiente.
-
-    Cada parámetro se samplea desde N(media, desviación estándar),
-    truncando valores negativos.
-    """
-
-    sampled = {}
-
-    for name in FREE_PARAM_MEAN:
-        sampled[name] = sample_positive_normal(
-            FREE_PARAM_MEAN[name],
-            FREE_PARAM_STD[name]
-        )
-
-    return sampled
-
-
-def sample_free_params():
-    if SAMPLING_METHOD == "empirical":
-        return sample_free_params_empirical()
-
-    if SAMPLING_METHOD == "normal":
-        return sample_free_params_normal()
-
-    raise ValueError(
-        f"SAMPLING_METHOD no válido: {SAMPLING_METHOD}. "
-        "Usa 'empirical' o 'normal'."
+    sampled_value = truncnorm.rvs(
+        a=a,
+        b=b,
+        loc=median_value,
+        scale=std_value,
+        random_state=rng
     )
 
+    return float(sampled_value)
 
-def get_sampling_description():
-    if SAMPLING_METHOD == "empirical":
-        return "Muestreo empírico por sets completos de parámetros calibrados"
 
-    if SAMPLING_METHOD == "normal":
-        return "Muestreo normal independiente usando media y desviación estándar"
+def sample_free_params_truncnorm(seed=None):
+    rng = np.random.default_rng(seed)
 
-    return "Método de muestreo no reconocido"
+    sampled = {}
+    for name in FREE_PARAM_NAMES:
+        sampled[name] = sample_truncated_normal_parameter(name, rng)
+
+    return sampled
+
+
+def build_sampled_param_dict(seed=None):
+    params = FIXED_PARAMS.copy()
+    params.update(sample_free_params_truncnorm(seed=seed))
+
+    missing_params = [name for name in PARAM_ORDER if name not in params]
+    if missing_params:
+        raise ValueError(
+            "Faltan parámetros para construir el vector completo según PARAM_ORDER: "
+            f"{missing_params}"
+        )
+
+    return params
+
+
+def build_param_vector(param_dict):
+    return np.array([param_dict[name] for name in PARAM_ORDER], dtype=float)
+
+
+def build_median_theta_vector():
+    """Vector de parámetros libres en el mismo orden que FREE_PARAM_NAMES."""
+    return np.array([FREE_PARAM_MEDIAN[name] for name in FREE_PARAM_NAMES], dtype=float)
+
+
+def compute_validation_costs(dataset):
+    """
+    Calcula los costos con la misma función usada en la optimización.
+
+    Retorna:
+    - objective_total: costo total azúcar + etanol
+    - sugar_error_mean: término de costo de azúcares
+    - ethanol_error: término de costo de etanol
+    """
+
+    breakdown = compute_objective_breakdown(
+        theta=build_median_theta_vector(),
+        free_names=FREE_PARAM_NAMES,
+        fixed_params=FIXED_PARAMS,
+        x0=dataset["x0"],
+        t_rel=dataset["t_rel"],
+        temp=dataset["temp"],
+        Nadd=dataset["Nadd"],
+        t_span=dataset["t_span"],
+        sugars_profile=dataset["sugars_profile"],
+        Et_final_exp=dataset["Et_final_exp"],
+        penalty=PENALTY_COST,
+    )
+
+    return {
+        "validation_cost_total": float(breakdown["objective_total"]),
+        "validation_cost_sugar": float(breakdown["sugar_error_mean"]),
+        "validation_cost_ethanol": float(breakdown["ethanol_error"]),
+    }
 
 
 # ============================================================
-# UTILIDADES GENERALES
+# UTILIDADES DE DATASETS
 # ============================================================
 
 def choose_datasets_by_ids(datasets_info, dataset_ids):
@@ -529,8 +583,7 @@ def choose_datasets_by_ids(datasets_info, dataset_ids):
             f"Los siguientes IDs no existen en DATASETS_INFO: {missing_ids}"
         )
 
-    selected = [dataset_map[dataset_id] for dataset_id in dataset_ids]
-    return selected
+    return [dataset_map[dataset_id] for dataset_id in dataset_ids]
 
 
 def build_dataset(item):
@@ -541,7 +594,7 @@ def build_dataset(item):
         "name": item["name"],
         "path": item["path"],
         "x0": data_excel[0],
-        "t_rel": data_excel[1],
+        "t_rel": np.asarray(data_excel[1], dtype=float),
         "sugars_profile": np.asarray(data_excel[2], dtype=float),
         "temp": data_excel[3],
         "Nadd": data_excel[4],
@@ -550,11 +603,18 @@ def build_dataset(item):
     }
 
 
-def build_param_vector(param_dict):
-    return np.array([param_dict[name] for name in PARAM_ORDER], dtype=float)
-
+# ============================================================
+# SIMULACIÓN
+# ============================================================
 
 def simulate_dataset(dataset, params_dict):
+    """
+    Simula un dataset y retorna:
+    - tiempo
+    - azúcares totales S = G + F
+    - etanol E
+    """
+
     params_vector = build_param_vector(params_dict)
 
     sol = simulate_system(
@@ -571,6 +631,12 @@ def simulate_dataset(dataset, params_dict):
     sugars = np.asarray(y[:, 2] + y[:, 3], dtype=float)
     ethanol = np.asarray(y[:, 4], dtype=float)
 
+    if not np.all(np.isfinite(sugars)):
+        raise RuntimeError("La simulación produjo valores no finitos en azúcares.")
+
+    if not np.all(np.isfinite(ethanol)):
+        raise RuntimeError("La simulación produjo valores no finitos en etanol.")
+
     return {
         "time": np.asarray(sol.t, dtype=float),
         "sugars": sugars,
@@ -578,63 +644,160 @@ def simulate_dataset(dataset, params_dict):
     }
 
 
-def validation_cost(dataset, sim):
-    t_sim = np.asarray(sim["time"], dtype=float)
-    sugars_sim = np.asarray(sim["sugars"], dtype=float)
-    ethanol_sim = np.asarray(sim["ethanol"], dtype=float)
+# ============================================================
+# MÉTRICAS
+# ============================================================
 
+def compute_sugar_validation_metrics(dataset, result):
     t_exp = np.asarray(dataset["t_rel"], dtype=float)
-    sugars_exp = np.asarray(dataset["sugars_profile"], dtype=float)
-    ethanol_exp = float(dataset["Et_final_exp"])
+    sugar_exp = np.asarray(dataset["sugars_profile"], dtype=float)
 
-    sugars_interp = np.interp(t_exp, t_sim, sugars_sim)
+    t_sim = np.asarray(result["time"], dtype=float)
+    sugar_central = np.asarray(result["sugars_central"], dtype=float)
 
-    valid = np.isfinite(sugars_exp) & np.isfinite(sugars_interp)
+    sugar_interp = np.interp(t_exp, t_sim, sugar_central)
+
+    valid = np.isfinite(t_exp) & np.isfinite(sugar_exp) & np.isfinite(sugar_interp)
 
     if not np.any(valid):
-        sugar_cost = 0.0
-    else:
-        scale_sugar = max(np.nanmax(np.abs(sugars_exp[valid])), 1e-8)
-        sugar_cost = np.mean(((sugars_interp[valid] - sugars_exp[valid]) / scale_sugar) ** 2)
+        return {
+            "rmse": np.nan,
+            "nrmse": np.nan,
+            "coverage": np.nan,
+            "n_exp_valid": 0,
+        }
 
-    scale_ethanol = max(abs(ethanol_exp), 1e-8)
-    ethanol_cost = ((ethanol_sim[-1] - ethanol_exp) / scale_ethanol) ** 2
+    y_exp = sugar_exp[valid]
+    y_sim = sugar_interp[valid]
 
-    return float(sugar_cost + ethanol_cost)
+    # RMSE = sqrt(1/n * sum((y_i - yhat_i)^2))
+    errors = y_exp - y_sim
+    rmse = float(np.sqrt(np.mean(errors ** 2)))
+
+    # NRMSE = RMSE / (y_max - y_min)
+    y_range = float(np.nanmax(y_exp) - np.nanmin(y_exp))
+    nrmse = float(rmse / y_range) if y_range > 1e-8 else np.nan
+
+    low_interp = np.interp(
+        t_exp[valid],
+        t_sim,
+        result["sugar_percentile_bands"]["p05"]
+    )
+    high_interp = np.interp(
+        t_exp[valid],
+        t_sim,
+        result["sugar_percentile_bands"]["p95"]
+    )
+
+    inside = (y_exp >= low_interp) & (y_exp <= high_interp)
+    coverage = float(100.0 * np.mean(inside))
+
+    return {
+        "rmse": rmse,
+        "nrmse": nrmse,
+        "coverage": coverage,
+        "n_exp_valid": int(np.sum(valid)),
+    }
+
+def compute_ethanol_validation_metrics(dataset, result):
+    et_exp = float(dataset["Et_final_exp"])
+    et_central_final = float(result["ethanol_central"][-1])
+
+    error = et_central_final - et_exp
+    abs_error = abs(error)
+
+    scale = max(abs(et_exp), 1e-8)
+    relative_error = abs_error / scale
+
+    return {
+        "error": error,
+        "abs_error": abs_error,
+        "relative_error": relative_error,
+    }
 
 
 # ============================================================
 # MONTE CARLO
 # ============================================================
 
-def run_single_monte_carlo_iteration(dataset):
-    sampled_params = FIXED_PARAMS.copy()
-    sampled_params.update(sample_free_params())
+def run_single_monte_carlo_iteration(dataset, seed):
+    """
+    Ejecuta una simulación Monte Carlo.
+    Retorna azúcares y etanol.
+    """
 
     try:
+        sampled_params = build_sampled_param_dict(seed=seed)
         sim = simulate_dataset(dataset, sampled_params)
-        return sim["sugars"], sim["ethanol"]
+
+        return {
+            "sugars": sim["sugars"],
+            "ethanol": sim["ethanol"],
+        }
+
     except Exception:
         return None
 
 
-def run_uncertainty_simulations(dataset, n_mc, n_workers=None):
-    mean_params = build_mean_param_dict()
-    base_sim = simulate_dataset(dataset, mean_params)
+def compute_percentile_bands(runs):
+    """
+    Calcula 3 bandas percentilares anidadas:
+
+    Banda externa:
+        p05 - p95
+
+    Banda media:
+        p20 - p80
+
+    Banda interna:
+        p35 - p65
+
+    Además calcula p50 como mediana Monte Carlo.
+    """
+
+    runs = np.asarray(runs, dtype=float)
+
+    return {
+        "p05": np.percentile(runs, 5, axis=0),
+        "p20": np.percentile(runs, 20, axis=0),
+        "p35": np.percentile(runs, 35, axis=0),
+        "p50": np.percentile(runs, 50, axis=0),
+        "p65": np.percentile(runs, 65, axis=0),
+        "p80": np.percentile(runs, 80, axis=0),
+        "p95": np.percentile(runs, 95, axis=0),
+    }
+
+
+def run_uncertainty_simulations(dataset, n_mc, n_workers=1):
+    """
+    Para un dataset:
+    - simula curva central con mediana de los parámetros
+    - genera bandas Monte Carlo para azúcares y etanol
+    """
+
+    median_params = build_median_param_dict()
+    central_sim = simulate_dataset(dataset, median_params)
+
+    rng = np.random.default_rng(RANDOM_SEED + int(dataset["id"]) * 1000)
+    seeds = rng.integers(
+        low=0,
+        high=np.iinfo(np.uint32).max,
+        size=n_mc,
+        dtype=np.uint32
+    )
 
     sugar_runs = []
     ethanol_runs = []
 
     if n_workers == 1:
-        for _ in range(n_mc):
-            mc_result = run_single_monte_carlo_iteration(dataset)
+        for seed in seeds:
+            mc_result = run_single_monte_carlo_iteration(dataset, int(seed))
 
             if mc_result is None:
                 continue
 
-            sugars, ethanol = mc_result
-            sugar_runs.append(sugars)
-            ethanol_runs.append(ethanol)
+            sugar_runs.append(mc_result["sugars"])
+            ethanol_runs.append(mc_result["ethanol"])
 
     else:
         with ProcessPoolExecutor(max_workers=n_workers) as executor:
@@ -643,164 +806,185 @@ def run_uncertainty_simulations(dataset, n_mc, n_workers=None):
             for mc_result in executor.map(
                 run_single_monte_carlo_iteration,
                 repeat(dataset, n_mc),
+                [int(seed) for seed in seeds],
                 chunksize=chunksize,
             ):
                 if mc_result is None:
                     continue
 
-                sugars, ethanol = mc_result
-                sugar_runs.append(sugars)
-                ethanol_runs.append(ethanol)
+                sugar_runs.append(mc_result["sugars"])
+                ethanol_runs.append(mc_result["ethanol"])
 
-    if len(sugar_runs) == 0 or len(ethanol_runs) == 0:
+    if len(sugar_runs) == 0:
         raise RuntimeError(
-            f"No se pudieron generar simulaciones válidas para el dataset {dataset['name']}"
+            f"No se pudieron generar simulaciones válidas para el dataset {dataset['name']}."
         )
 
     sugar_runs = np.asarray(sugar_runs, dtype=float)
     ethanol_runs = np.asarray(ethanol_runs, dtype=float)
 
-    sugar_low = np.percentile(sugar_runs, LOW_PERCENTILE, axis=0)
-    sugar_high = np.percentile(sugar_runs, HIGH_PERCENTILE, axis=0)
+    sugar_bands = compute_percentile_bands(sugar_runs)
+    ethanol_bands = compute_percentile_bands(ethanol_runs)
 
-    ethanol_low = np.percentile(ethanol_runs, LOW_PERCENTILE, axis=0)
-    ethanol_high = np.percentile(ethanol_runs, HIGH_PERCENTILE, axis=0)
+    result = {
+        "time": central_sim["time"],
 
-    # Curva central SIEMPRE igual
-    sugars_central_curve = base_sim["sugars"]
-    ethanol_central_curve = base_sim["ethanol"]
-    central_curve_label = "Parámetros promedio"
+        "sugars_central": central_sim["sugars"],
+        "sugar_mc_median": sugar_bands["p50"],
+        "sugar_percentile_bands": sugar_bands,
 
+        "ethanol_central": central_sim["ethanol"],
+        "ethanol_mc_median": ethanol_bands["p50"],
+        "ethanol_percentile_bands": ethanol_bands,
 
-    cost_mean_params = validation_cost(dataset, base_sim)
-
-    return {
-        "time": base_sim["time"],
-        "sugars_mean_curve": sugars_central_curve,
-        "ethanol_mean_curve": ethanol_central_curve,
-        "sugar_low": sugar_low,
-        "sugar_high": sugar_high,
-        "ethanol_low": ethanol_low,
-        "ethanol_high": ethanol_high,
         "n_valid_runs": len(sugar_runs),
-        "cost_mean_params": cost_mean_params,
-        "central_curve_label": central_curve_label,
     }
 
+    result["validation_costs"] = compute_validation_costs(dataset)
+    result["sugar_metrics"] = compute_sugar_validation_metrics(dataset, result)
+    result["ethanol_metrics"] = compute_ethanol_validation_metrics(dataset, result)
+
+    return result
+
 
 # ============================================================
-# PLOT
+# PLOT AUXILIAR
 # ============================================================
 
-def plot_results(datasets, results):
-    n_plots = len(datasets)
+def add_nested_red_bands(ax, t, bands, label_first=True):
+    """
+    Agrega 3 bandas percentilares anidadas para representar densidad visual.
 
-    if n_plots == 4:
-        fig, axes = plt.subplots(
-            2, 2,
-            figsize=(16, 11.5),
-            sharex=False,
-            sharey=False
-        )
-        axes = axes.flatten()
-    else:
-        fig, axes = plt.subplots(
-            n_plots,
-            1,
-            figsize=(13, 4.8 * n_plots),
-            sharex=False,
-            sharey=False
-        )
+    Zonas:
+    - 5-95%  : rango amplio, rojo claro.
+    - 20-80% : rango intermedio, rojo medio.
+    - 35-65% : zona más concentrada, rojo oscuro.
+    """
 
-        if n_plots == 1:
-            axes = [axes]
+    ax.fill_between(
+        t,
+        bands["p05"],
+        bands["p95"],
+        color="#f3a6a6",
+        alpha=0.62,
+        linewidth=0,
+        label="MC 5-95%" if label_first else None
+    )
 
-    for ax, dataset, res in zip(axes, datasets, results):
-        t_sim_days = res["time"] / 24.0
+    ax.fill_between(
+        t,
+        bands["p20"],
+        bands["p80"],
+        color="#e25f5f",
+        alpha=0.52,
+        linewidth=0,
+        label="MC 20-80%" if label_first else None
+    )
+
+    ax.fill_between(
+        t,
+        bands["p35"],
+        bands["p65"],
+        color="#bf3737",
+        alpha=0.48,
+        linewidth=0,
+        label="MC 35-65%" if label_first else None
+    )
+
+
+def create_2x2_axes(figsize=(16, 10.8)):
+    fig, axes = plt.subplots(
+        2, 2,
+        figsize=figsize,
+        sharex=False,
+        sharey=False
+    )
+    return fig, axes.flatten()
+
+
+def clean_dataset_name(name):
+    """Quita la extensión .xlsx del nombre mostrado en los gráficos."""
+    return os.path.splitext(name)[0]
+
+
+# ============================================================
+# FIGURA 1: AZÚCARES
+# ============================================================
+
+def plot_sugar_results(datasets, results, n_param_samples):
+    fig, axes = create_2x2_axes()
+
+    for idx, (ax, dataset, res) in enumerate(zip(axes, datasets, results)):
+        t_sim_days = np.asarray(res["time"], dtype=float) / 24.0
         t_exp_days = np.asarray(dataset["t_rel"], dtype=float) / 24.0
 
-        ax.fill_between(
+        sugar_exp = np.asarray(dataset["sugars_profile"], dtype=float)
+        valid_exp = np.isfinite(t_exp_days) & np.isfinite(sugar_exp)
+
+        add_nested_red_bands(
+            ax,
             t_sim_days,
-            res["sugar_low"],
-            res["sugar_high"],
-            alpha=0.20,
-            label="Banda azúcares"
+            res["sugar_percentile_bands"],
+            label_first=(idx == 0)
         )
 
         ax.plot(
             t_sim_days,
-            res["sugars_mean_curve"],
-            linewidth=2.0,
-            label="Azúcares simulados"
+            res["sugars_central"],
+            color="black",
+            linewidth=2.2,
+            label="Simulación con la mediana de los parámetros"
         )
 
         ax.scatter(
-            t_exp_days,
-            dataset["sugars_profile"],
-            s=22,
+            t_exp_days[valid_exp],
+            sugar_exp[valid_exp],
+            s=30,
+            color="tab:blue",
+            edgecolor="white",
+            linewidth=0.5,
+            zorder=3,
             label="Azúcares experimentales"
         )
 
-        ax.fill_between(
-            t_sim_days,
-            res["ethanol_low"],
-            res["ethanol_high"],
-            alpha=0.20,
-            label="Banda etanol"
-        )
+        metrics = res["sugar_metrics"]
+        costs = res["validation_costs"]
 
-        ax.plot(
-            t_sim_days,
-            res["ethanol_mean_curve"],
-            linewidth=2.0,
-            linestyle="--",
-            label="Etanol simulado"
-        )
-
-        ax.scatter(
-            t_exp_days[-1],
-            dataset["Et_final_exp"],
-            s=45,
-            marker="o",
-            label="Etanol final experimental"
+        text_box = (
+            f"RMSE: {metrics['rmse']:.2f} g/L\n"
+            f"NRMSE: {100 * metrics['nrmse']:.2f}%\n"
+            f"Costo azúcar: {costs['validation_cost_sugar']:.6f}\n"
         )
 
         ax.text(
             0.60,
             0.94,
-            f"Costo validación: {res['cost_mean_params']:.6f}",
+            text_box,
             transform=ax.transAxes,
-            fontsize=8.5,
+            fontsize=8.0,
             verticalalignment="top",
             horizontalalignment="left",
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.85)
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.88)
         )
 
         ax.set_title(
-            f"Set {dataset['id']}: {textwrap.fill(dataset['name'], width=42)}\n"
-            f"Simulaciones válidas: {res['n_valid_runs']}/{N_MONTE_CARLO}",
+            f"{textwrap.fill(clean_dataset_name(dataset['name']), width=TITLE_WRAP_WIDTH)}\n"
+            f"Costo validación total: {costs['validation_cost_total']:.6f}",
             fontsize=10,
-            pad=14
+            pad=12
         )
 
         ax.set_xlabel("Tiempo (días)", labelpad=8)
-        ax.set_ylabel("Concentración", labelpad=8)
+        ax.set_ylabel("Azúcares, S = G + F (g/L)", labelpad=8)
         ax.grid(True, alpha=0.3)
 
     handles, labels = axes[0].get_legend_handles_labels()
     unique = dict(zip(labels, handles))
 
-    if SAMPLING_METHOD == "empirical":
-        central_text = "Curva central = promedio de simulaciones Monte Carlo"
-    elif SAMPLING_METHOD == "normal":
-        central_text = "Curva central = simulación con parámetros promedio"
-    else:
-        central_text = "Curva central"
-
     fig.suptitle(
-        "Incertidumbre de simulación para azúcares y etanol\n"
-        f"{central_text} + banda percentil {LOW_PERCENTILE}-{HIGH_PERCENTILE}\n"
-        f"{get_sampling_description()}",
+        "Validación predictiva del consumo de azúcares\n"
+        f"Curva central con mediana de parámetros + bandas Monte Carlo con normal "
+        f"({n_param_samples} muestras de parámetros)",
         fontsize=15,
         y=0.985
     )
@@ -809,9 +993,9 @@ def plot_results(datasets, results):
         unique.values(),
         unique.keys(),
         loc="upper center",
-        ncol=3,
-        bbox_to_anchor=(0.5, 0.875),
-        fontsize=10,
+        ncol=5,
+        bbox_to_anchor=(0.5, 0.905),
+        fontsize=9.5,
         frameon=True
     )
 
@@ -819,8 +1003,111 @@ def plot_results(datasets, results):
         left=0.07,
         right=0.98,
         bottom=0.07,
-        top=0.75,
-        hspace=0.65,
+        top=0.80,
+        hspace=0.55,
+        wspace=0.25
+    )
+
+    plt.show()
+
+
+# ============================================================
+# FIGURA 2: ETANOL
+# ============================================================
+
+def plot_ethanol_results(datasets, results, n_param_samples):
+    fig, axes = create_2x2_axes()
+
+    for idx, (ax, dataset, res) in enumerate(zip(axes, datasets, results)):
+        t_sim_days = np.asarray(res["time"], dtype=float) / 24.0
+
+        et_exp = float(dataset["Et_final_exp"])
+        t_final_exp_days = float(np.nanmax(np.asarray(dataset["t_rel"], dtype=float))) / 24.0
+
+        add_nested_red_bands(
+            ax,
+            t_sim_days,
+            res["ethanol_percentile_bands"],
+            label_first=(idx == 0)
+        )
+
+        ax.plot(
+            t_sim_days,
+            res["ethanol_central"],
+            color="black",
+            linewidth=2.2,
+            label="Simulación con la mediana de los parámetros"
+        )
+
+        ax.scatter(
+            [t_final_exp_days],
+            [et_exp],
+            s=55,
+            color="tab:blue",
+            edgecolor="white",
+            linewidth=0.7,
+            zorder=4,
+            label="Etanol experimental final"
+        )
+
+        metrics = res["ethanol_metrics"]
+        costs = res["validation_costs"]
+
+        text_box = (
+            f"Error abs.: {metrics['abs_error']:.2f} g/L\n"
+            f"Error rel.: {100 * metrics['relative_error']:.2f}%\n"
+            f"Costo etanol: {costs['validation_cost_ethanol']:.6f}"
+        )
+
+        ax.text(
+            0.40,
+            0.94,
+            text_box,
+            transform=ax.transAxes,
+            fontsize=8.5,
+            verticalalignment="top",
+            horizontalalignment="left",
+            bbox=dict(boxstyle="round", facecolor="white", alpha=0.88)
+        )
+
+        ax.set_title(
+            f"{textwrap.fill(clean_dataset_name(dataset['name']), width=TITLE_WRAP_WIDTH)}\n"
+            f"Costo validación total: {costs['validation_cost_total']:.6f}",
+            fontsize=10,
+            pad=12
+        )
+
+        ax.set_xlabel("Tiempo (días)", labelpad=8)
+        ax.set_ylabel("Etanol, E (g/L)", labelpad=8)
+        ax.grid(True, alpha=0.3)
+
+    handles, labels = axes[0].get_legend_handles_labels()
+    unique = dict(zip(labels, handles))
+
+    fig.suptitle(
+        "Validación predictiva de etanol final\n"
+        f"Curva central con mediana de parámetros + bandas Monte Carlo con normal "
+        f"({n_param_samples} muestras de parámetros)",
+        fontsize=15,
+        y=0.985
+    )
+
+    fig.legend(
+        unique.values(),
+        unique.keys(),
+        loc="upper center",
+        ncol=5,
+        bbox_to_anchor=(0.5, 0.905),
+        fontsize=9.5,
+        frameon=True
+    )
+
+    fig.subplots_adjust(
+        left=0.07,
+        right=0.98,
+        bottom=0.07,
+        top=0.80,
+        hspace=0.55,
         wspace=0.25
     )
 
@@ -833,44 +1120,37 @@ def plot_results(datasets, results):
 
 def main():
     print("=" * 80)
-    print("GRÁFICOS DE INCERTIDUMBRE - DATASETS DEFINIDOS MANUALMENTE")
+    print("VALIDACIÓN CON BANDAS MONTE CARLO - AZÚCARES Y ETANOL")
     print("=" * 80)
 
-    print("\nMétodo de muestreo seleccionado:")
-    print(f"  {SAMPLING_METHOD} → {get_sampling_description()}")
+    print("\nConfiguración básica:")
+    print(f"  Datasets validación: {VALIDATION_DATASET_IDS}")
+    print(f"  Muestras Monte Carlo por dataset: {N_MONTE_CARLO}")
+    print(f"  Workers: {N_MONTE_CARLO_WORKERS}")
 
-    print(f"\nNúmero de sets de parámetros disponibles: {FREE_PARAM_MATRIX.shape[0]}")
+    n_samples = len(next(iter(FREE_PARAM_SAMPLES.values())))
+    print(f"\nMuestras disponibles por parámetro libre: {n_samples}")
 
-    print("\nPromedios calculados:")
-    for k, v in FREE_PARAM_MEAN.items():
-        print(f"{k}: {v:.8f}")
+    print("\nMedianas y desviaciones estándar calculadas:")
+    for name in FREE_PARAM_NAMES:
+        print(
+            f"  {name}: "
+            f"mediana = {FREE_PARAM_MEDIAN[name]:.8f}, "
+            f"std = {FREE_PARAM_STD[name]:.8f}"
+        )
 
-    print("\nDesviaciones estándar calculadas:")
-    for k, v in FREE_PARAM_STD.items():
-        print(f"{k}: {v:.8f}")
-
-    print("\nIDs solicitados para validación:")
-    print(VALIDATION_DATASET_IDS)
-
-    selected_info = choose_datasets_by_ids(
-        DATASETS_INFO,
-        VALIDATION_DATASET_IDS
-    )
-
-    print("\nDatasets elegidos:")
-    for item in selected_info:
-        print(f"  {item['id']:02d} - {item['name']}")
+    selected_info = choose_datasets_by_ids(DATASETS_INFO, VALIDATION_DATASET_IDS)
 
     datasets = []
-
+    print("\nCargando datasets:")
     for item in selected_info:
-        print(f"\nCargando dataset {item['id']:02d}...")
+        print(f"  {item['id']:02d} - {item['name']}")
         datasets.append(build_dataset(item))
 
     results = []
 
     for dataset in datasets:
-        print(f"\nCorriendo simulaciones para set {dataset['id']:02d} - {dataset['name']}")
+        print(f"\nCalculando muestras para dataset {dataset['id']:02d} - {dataset['name']}...")
 
         res = run_uncertainty_simulations(
             dataset,
@@ -880,10 +1160,24 @@ def main():
 
         results.append(res)
 
-        print(f"  Simulaciones válidas: {res['n_valid_runs']}/{N_MONTE_CARLO}")
-        print(f"  Costo validación params promedio: {res['cost_mean_params']:.6f}")
+        sugar_metrics = res["sugar_metrics"]
+        ethanol_metrics = res["ethanol_metrics"]
+        costs = res["validation_costs"]
 
-    plot_results(datasets, results)
+        print(f"  Simulaciones válidas: {res['n_valid_runs']}/{N_MONTE_CARLO}")
+        print(f"  Costo total validación: {costs['validation_cost_total']:.6f}")
+        print(
+            f"  Azúcar -> RMSE: {sugar_metrics['rmse']:.4f}, "
+            f"NRMSE: {100 * sugar_metrics['nrmse']:.2f}%, "
+            # f"puntos en banda: {sugar_metrics['coverage']:.1f}%"
+        )
+        print(
+            f"  Etanol -> error abs.: {ethanol_metrics['abs_error']:.4f}, "
+            f"error rel.: {100 * ethanol_metrics['relative_error']:.2f}%"
+        )
+
+    plot_sugar_results(datasets, results, n_samples)
+    plot_ethanol_results(datasets, results, n_samples)
 
 
 if __name__ == "__main__":

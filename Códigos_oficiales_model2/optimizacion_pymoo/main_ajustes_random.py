@@ -1,17 +1,12 @@
-# -*- coding: utf-8 -*-
 """
-Ejecuta un ajuste de parámetros con PSO (pymoo) usando 16 datasets de 100.000 L de distintas variedades.
-
-El flujo es el siguiente:
-- Se construyen todos los datasets desde el inicio.
-- Se reservan 4 datasets como validación/separados.
-- Esos 4 conjuntos se pueden definir manualmente con MANUAL_HOLDOUT_IDS;
-    si se deja en None, se eligen al azar.
-- En cada iteración se seleccionan 5 datasets de ajuste entre los restantes 12.
-- No se repiten combinaciones de ajuste dentro de la misma corrida.
-- La ejecución se hace en paralelo con workers y los resultados se guardan a Excel.
-
-La semilla fija se usa solo en PSO para mantener reproducible la optimización.
+Validación cruzada aleatoria repetida con pymoo PSO
+- 20 datasets CS de 100.000 L
+- Se separan 4 datasets una sola vez al inicio
+- En cada iteración: 5 ajuste usando solo los 12 restantes
+- Sin repetir combinaciones de ajuste dentro de la misma corrida
+- Ejecución paralela con workers
+- Guardado final a Excel
+- Seed fija solo para PSO, no para los splits aleatorios
 """
 
 import os
@@ -29,13 +24,13 @@ import pandas as pd
 
 
 CURRENT_DIR = os.path.dirname(__file__)
-PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
-if PROJECT_DIR not in sys.path:
-    sys.path.insert(0, PROJECT_DIR)
+MODEL_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if MODEL_DIR not in sys.path:
+    sys.path.insert(0, MODEL_DIR)
 
-from simulacion_v2 import data_for_simulation, simulate_system
-from pymoo_opt_v2 import (
-    MODEL_2264,
+from simulacion_coleman import data_for_simulation, simulate_system
+from pymoo_opt_coleman import (
+    MODEL_COLEMAN,
     PARAM_ORDER,
     PSO_CONFIG,
     run_pymoo_estimation,
@@ -47,19 +42,15 @@ from pymoo_opt_v2 import (
 # CONFIGURACIÓN GENERAL
 # ============================================================
 
-N_ITERATIONS = 50
-N_VALIDATION = 0
+N_ITERATIONS = 5
+N_VALIDATION = 4
 N_HOLDOUT = 4
 N_TRAIN = 5
 MAX_WORKERS = 5
 
 OUTPUT_BASENAME = "resultados_cv_pymoo_100k"
 
-# Si quieres fijar manualmente los 4 datasets separados desde el inicio,
-# coloca aquí sus IDs. Si queda en None, se elegirán al azar.
-MANUAL_HOLDOUT_IDS = (3, 4, 11, 14)
-
-MODEL_STRUCTURE = MODEL_2264
+MODEL_STRUCTURE = MODEL_COLEMAN
 
 CUSTOM_PSO_CONFIG = PSO_CONFIG.copy()
 CUSTOM_PSO_CONFIG["epoch"] = 2000
@@ -173,8 +164,8 @@ def format_elapsed(seconds):
 
 def compute_validation_cost(sol, sugars_profile, Et_final_exp, penalty=1e12, eps=1e-8):
     y = sol.y.T
-    sugars_sim = np.asarray(y[:, 2], dtype=float)
-    Et_final_sim = float(y[-1, 3])
+    sugars_sim = np.asarray(y[:, 2] + y[:, 3], dtype=float)
+    Et_final_sim = float(y[-1, 4])
 
     sugars_profile = np.asarray(sugars_profile, dtype=float)
     Et_final_exp = float(Et_final_exp)
@@ -221,34 +212,17 @@ def build_all_datasets(datasets_info):
         path = item["path"]
         data_excel = data_for_simulation(path)
 
-        if isinstance(data_excel, dict):
-            x0 = np.asarray(data_excel["x0"], dtype=float)
-            t_rel = np.asarray(data_excel["t_rel"], dtype=float)
-            sugars_profile = np.asarray(data_excel["sugars_profile"], dtype=float)
-            temp = np.asarray(data_excel["temp_prom"], dtype=float)
-            Nadd = np.asarray(data_excel["Nadd"], dtype=float)
-            t_span = data_excel["tspan"]
-            Et_final_exp = float(data_excel["Et_final"])
-        else:
-            x0 = np.asarray(data_excel[0], dtype=float)
-            t_rel = np.asarray(data_excel[1], dtype=float)
-            sugars_profile = np.asarray(data_excel[2], dtype=float)
-            temp = np.asarray(data_excel[3], dtype=float)
-            Nadd = np.asarray(data_excel[4], dtype=float)
-            t_span = data_excel[5]
-            Et_final_exp = float(data_excel[6])
-
         datasets_by_id[item["id"]] = {
             "id": item["id"],
             "name": item["name"],
             "path": path,
-            "x0": x0,
-            "t_rel": t_rel,
-            "sugars_profile": sugars_profile,
-            "temp": temp,
-            "Nadd": Nadd,
-            "t_span": t_span,
-            "Et_final_exp": Et_final_exp,
+            "x0": data_excel[0],
+            "t_rel": data_excel[1],
+            "sugars_profile": data_excel[2],
+            "temp": data_excel[3],
+            "Nadd": data_excel[4],
+            "t_span": data_excel[5],
+            "Et_final_exp": data_excel[6],
         }
 
         print(f"[OK] Dataset {item['id']:02d}: {item['name']}")
@@ -302,68 +276,6 @@ def create_output_dir():
     return output_dir
 
 
-def evaluate_validation_sets(best_params_vector, separated_ids, datasets_by_id):
-    validation_cost_columns = {}
-    validation_details = []
-    total_validation_cost = 0.0
-
-    for validation_position, validation_id in enumerate(separated_ids, start=1):
-        dataset = datasets_by_id[validation_id]
-        column_name = f"costo_validacion_{validation_position}"
-
-        try:
-            sol = simulate_system(
-                x0=dataset["x0"],
-                t_rel=dataset["t_rel"],
-                temp=dataset["temp"],
-                Nadd=dataset["Nadd"],
-                tspan=dataset["t_span"],
-                params_list=best_params_vector,
-            )
-
-            validation_cost = compute_validation_cost(
-                sol=sol,
-                sugars_profile=dataset["sugars_profile"],
-                Et_final_exp=dataset["Et_final_exp"],
-            )
-
-            objective_total = float(validation_cost["objective_total"])
-
-            validation_cost_columns[column_name] = objective_total
-            total_validation_cost += objective_total
-
-            validation_details.append({
-                "pos_validacion": validation_position,
-                "id_validacion": validation_id,
-                "nombre_validacion": dataset["name"],
-                "costo_validacion": objective_total,
-                "sugar_error_mean": validation_cost["sugar_error_mean"],
-                "ethanol_error": validation_cost["ethanol_error"],
-                "Et_final_sim": validation_cost["Et_final_sim"],
-                "Et_final_exp": float(dataset["Et_final_exp"]),
-            })
-
-        except Exception as exc:
-            penalty = 1e12
-
-            validation_cost_columns[column_name] = penalty
-            total_validation_cost += penalty
-
-            validation_details.append({
-                "pos_validacion": validation_position,
-                "id_validacion": validation_id,
-                "nombre_validacion": dataset["name"],
-                "costo_validacion": penalty,
-                "sugar_error_mean": penalty,
-                "ethanol_error": penalty,
-                "Et_final_sim": np.nan,
-                "Et_final_exp": float(dataset["Et_final_exp"]),
-                "error_message": str(exc),
-            })
-
-    return validation_cost_columns, validation_details, float(total_validation_cost)
-
-
 # ============================================================
 # WORKER
 # ============================================================
@@ -386,14 +298,9 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
 
         best_params_vector = params_dict_to_vector(best_params, PARAM_ORDER)
 
-        validation_cost_columns, validation_details, costo_validacion = evaluate_validation_sets(
-            best_params_vector=best_params_vector,
-            separated_ids=separated_ids,
-            datasets_by_id=datasets_by_id,
-        )
-
         costo_ajuste = float(result_fit["fun"])
-        costo_total = float(costo_ajuste + costo_validacion)
+        costo_validacion = 0.0
+        costo_total = float(costo_ajuste)
 
         elapsed = time.perf_counter() - start
         end_clock = datetime.now()
@@ -428,8 +335,6 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
         for param_name, param_value in zip(PARAM_ORDER, best_params_vector):
             row[param_name] = float(param_value)
 
-        row.update(validation_cost_columns)
-
         summary = {
             "iteracion": iteration,
             "costo_ajuste": costo_ajuste,
@@ -446,13 +351,7 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "ok": True,
             "row": row,
             "summary": summary,
-            "validation_details": [
-                {
-                    "iteracion": iteration,
-                    **detail,
-                }
-                for detail in validation_details
-            ],
+            "validation_details": [],
         }
 
     except Exception as e:
@@ -489,9 +388,6 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
         for param_name in PARAM_ORDER:
             row[param_name] = np.nan
 
-        for validation_id in separated_ids:
-            row[f"costo_validacion_{separated_ids.index(validation_id) + 1}"] = np.nan
-
         summary = {
             "iteracion": iteration,
             "costo_ajuste": np.nan,
@@ -518,7 +414,7 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
 
 def main():
     print("=" * 80)
-    print("VALIDACIÓN CRUZADA REPETIDA - PYMOO PSO")
+    print("VALIDACIÓN CRUZADA ALEATORIA REPETIDA - PYMOO PSO")
     print("=" * 80)
 
     if len(DATASETS_INFO) == 0:
@@ -531,20 +427,7 @@ def main():
             "N_TRAIN + conjuntos separados no puede ser mayor al total de datasets."
         )
 
-    if MANUAL_HOLDOUT_IDS is not None:
-        holdout_ids = tuple(sorted(MANUAL_HOLDOUT_IDS))
-        if len(holdout_ids) != N_HOLDOUT:
-            raise ValueError(
-                f"MANUAL_HOLDOUT_IDS debe tener exactamente {N_HOLDOUT} IDs."
-            )
-        invalid_ids = sorted(set(holdout_ids) - set(dataset_ids))
-        if invalid_ids:
-            raise ValueError(
-                f"MANUAL_HOLDOUT_IDS contiene IDs que no existen: {invalid_ids}"
-            )
-    else:
-        holdout_ids = tuple(sorted(random.sample(dataset_ids, N_HOLDOUT)))
-
+    holdout_ids = tuple(sorted(random.sample(dataset_ids, N_HOLDOUT)))
     remaining_ids = sorted(set(dataset_ids) - set(holdout_ids))
     total_possible = math.comb(len(remaining_ids), N_TRAIN)
     print(f"Sets separados fijos: {holdout_ids}")
@@ -558,10 +441,7 @@ def main():
     print(f"Archivo principal: {output_excel}")
     print(f"Archivo de detalle: {output_excel_details}")
     print("Semilla PSO fija: 123")
-    if MANUAL_HOLDOUT_IDS is None:
-        print("Sets separados elegidos al azar")
-    else:
-        print("Sets separados definidos manualmente")
+    print("Splits aleatorios sin seed fija")
 
     datasets_by_id = build_all_datasets(DATASETS_INFO)
 

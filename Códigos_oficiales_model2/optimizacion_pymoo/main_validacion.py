@@ -4,11 +4,11 @@ import numpy as np
 
 
 CURRENT_DIR = os.path.dirname(__file__)
-PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
-if PROJECT_DIR not in sys.path:
-    sys.path.insert(0, PROJECT_DIR)
+MODEL_DIR = os.path.abspath(os.path.join(CURRENT_DIR, ".."))
+if MODEL_DIR not in sys.path:
+    sys.path.insert(0, MODEL_DIR)
 
-from Códigos_oficiales.codigos_optimizacion.optimizacion_pymoo_v2_mayo.simulacion_v2 import simulate_system_from_path, plot_simulation_with_data, data_for_simulation
+from simulacion_coleman import simulate_system_from_path, plot_simulation_with_data, data_for_simulation
 
 paths = [# prueba 1: 4, 8, 13, 14
     # r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 61.xlsx",
