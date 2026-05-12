@@ -61,7 +61,7 @@ CUSTOM_PSO_CONFIG["c2"] = 1.5
 CUSTOM_PSO_CONFIG["seed"] = 123
 CUSTOM_PSO_CONFIG["verbose"] = False
 CUSTOM_PSO_CONFIG["save_history"] = False
-CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 1e-4 # antes estaba en 1e-3
+CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 0.0001 # antes estaba en 1e-3
 
 
 # ============================================================
@@ -427,7 +427,9 @@ def main():
             "N_TRAIN + conjuntos separados no puede ser mayor al total de datasets."
         )
 
-    holdout_ids = tuple(sorted(random.sample(dataset_ids, N_HOLDOUT)))
+    # holdout_ids = tuple(sorted(random.sample(dataset_ids, N_HOLDOUT)))
+    # print(f"Conjuntos separados fijos: {holdout_ids}")
+    holdout_ids = tuple([3, 4, 11, 14])
     remaining_ids = sorted(set(dataset_ids) - set(holdout_ids))
     total_possible = math.comb(len(remaining_ids), N_TRAIN)
     print(f"Sets separados fijos: {holdout_ids}")
