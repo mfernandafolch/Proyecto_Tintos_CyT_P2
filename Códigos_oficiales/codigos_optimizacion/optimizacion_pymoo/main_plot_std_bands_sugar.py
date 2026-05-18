@@ -11,7 +11,12 @@ Se generan dos figuras:
 2) Bandas con ±2 desviaciones estándar
 
 En cada figura se superponen los 4 datasets de validación definidos en
-VALIDATION_DATASET_IDS. Solo se grafica azúcar total S = G + F.
+VALIDATION_DATASET_IDS. Se grafica azúcar total S = G + F y etanol final/correspondiente.
+
+Convención de errores:
+- Azúcar: RMSE en g/L y NRMSE en %.
+- Etanol: error absoluto en la misma unidad de Et_final_exp, definido aquí como %.
+  No se usa % v/v en las etiquetas. El error relativo se reporta como %.
 """
 
 import os
@@ -45,6 +50,11 @@ DATASET_MARKERS = ["o", "s", "^", "*"]
 # "subplots" -> figura 2x2, un gráfico por dataset
 PLOT_MODE = "subplots"
 
+# Unidades que se muestran en gráficos e impresión.
+# Cambia ETHANOL_UNIT a "g/L" si tus datos de etanol final están expresados en g/L.
+SUGAR_UNIT = "g/L"
+ETHANOL_UNIT = "%"
+
 
 # ============================================================
 # BOUNDS DE PARÁMETROS
@@ -59,7 +69,6 @@ BOUNDS_DICT = {
     "Kf0": (1e-1, 100.0),
     "Kig0": (1e-1, 100.0),
     "Kie0": (1e-1, 100.0),
-    "Kd0": (1e-4, 1e-1),
     "Yxn": (1e-1, 10.0),
     "Yxg": (1e-1, 10.0),
     "Yxf": (1e-1, 10.0),
@@ -315,121 +324,6 @@ FREE_PARAM_SAMPLES = {
     ],
 }
 
-# Set post eliminación 3: 30 muestras por parámetro libre.
-# FREE_PARAM_SAMPLES = {
-#     "mu0": [
-#         0.095340553, 0.238672303, 0.221547458, 0.07104641, 0.12976963,
-#         0.231232081, 0.354456824, 0.1937975, 0.475079259, 0.140094304,
-#         0.139436427, 0.195722029, 0.244354817, 0.184323781, 0.132546263,
-#         0.194138162, 0.175524911, 0.095131473, 0.32234151, 0.114620491,
-#         0.10043929, 0.174521479, 0.109659677, 0.110052645, 0.126059526,
-#         0.078883809, 0.104120613, 0.153257031, 0.251328635, 0.189262873
-#     ],
-#     "betaG0": [
-#         4.850514939, 1.478940534, 1.76326327, 3.373843967, 1.100316472,
-#         1.718642886, 2.895646997, 1.305003993, 1.794283092, 2.576571471,
-#         1.437590477, 1.841314976, 1.688151119, 2.414963856, 3.893671185,
-#         3.844084631, 4.157755196, 1.351497672, 1.999131619, 1.28223395,
-#         4.380033293, 2.675765457, 2.955778978, 4.425205877, 0.808980602,
-#         1.989834202, 0.699872842, 4.285815386, 1.865459686, 2.11834583
-#     ],
-#     "betaF0": [
-#         1.723227134, 1.137318706, 3.882215806, 2.332203388, 3.276464489,
-#         2.997279946, 2.441717888, 2.162669254, 1.536080827, 2.857324395,
-#         1.175148555, 1.142151868, 1.102068367, 1.364981481, 0.672554907,
-#         1.236836131, 1.475388007, 1.378767963, 1.405566722, 3.399773246,
-#         0.635675162, 0.817523635, 2.187237852, 0.283873011, 1.650555251,
-#         3.112934964, 5.284849638, 2.536698845, 2.112764246, 0.720895014
-#     ],
-#     "Kn0": [
-#         0.009647, 0.009647, 0.009647, 0.009647, 0.009647,
-#         0.009647, 0.009647, 0.009647, 0.009647, 0.009647,
-#         0.009647, 0.009647, 0.009647, 0.009647, 0.009647,
-#         0.009647, 0.009647, 0.009647, 0.009647, 0.009647,
-#         0.009647, 0.009647, 0.009647, 0.009647, 0.009647,
-#         0.009647, 0.009647, 0.009647, 0.009647, 0.009647
-#     ],
-#     "Kg0": [
-#         8.551854, 8.551854, 8.551854, 8.551854, 8.551854,
-#         8.551854, 8.551854, 8.551854, 8.551854, 8.551854,
-#         8.551854, 8.551854, 8.551854, 8.551854, 8.551854,
-#         8.551854, 8.551854, 8.551854, 8.551854, 8.551854,
-#         8.551854, 8.551854, 8.551854, 8.551854, 8.551854,
-#         8.551854, 8.551854, 8.551854, 8.551854, 8.551854
-#     ],
-#     "Kf0": [
-#         7.16565, 7.16565, 7.16565, 7.16565, 7.16565,
-#         7.16565, 7.16565, 7.16565, 7.16565, 7.16565,
-#         7.16565, 7.16565, 7.16565, 7.16565, 7.16565,
-#         7.16565, 7.16565, 7.16565, 7.16565, 7.16565,
-#         7.16565, 7.16565, 7.16565, 7.16565, 7.16565,
-#         7.16565, 7.16565, 7.16565, 7.16565, 7.16565
-#     ],
-#     "Kig0": [
-#         44.15067, 44.15067, 44.15067, 44.15067, 44.15067,
-#         44.15067, 44.15067, 44.15067, 44.15067, 44.15067,
-#         44.15067, 44.15067, 44.15067, 44.15067, 44.15067,
-#         44.15067, 44.15067, 44.15067, 44.15067, 44.15067,
-#         44.15067, 44.15067, 44.15067, 44.15067, 44.15067,
-#         44.15067, 44.15067, 44.15067, 44.15067, 44.15067
-#     ],
-#     "Kie0": [
-#         42.528284, 42.528284, 42.528284, 42.528284, 42.528284,
-#         42.528284, 42.528284, 42.528284, 42.528284, 42.528284,
-#         42.528284, 42.528284, 42.528284, 42.528284, 42.528284,
-#         42.528284, 42.528284, 42.528284, 42.528284, 42.528284,
-#         42.528284, 42.528284, 42.528284, 42.528284, 42.528284,
-#         42.528284, 42.528284, 42.528284, 42.528284, 42.528284
-#     ],
-#     "Kd0": [
-#         0.0001, 0.0001, 0.0001, 0.0001, 0.0001,
-#         0.0001, 0.0001, 0.0001, 0.0001, 0.0001,
-#         0.0001, 0.0001, 0.0001, 0.0001, 0.0001,
-#         0.0001, 0.0001, 0.0001, 0.0001, 0.0001,
-#         0.0001, 0.0001, 0.0001, 0.0001, 0.0001,
-#         0.0001, 0.0001, 0.0001, 0.0001, 0.0001
-#     ],
-#     "Yxn": [
-#         2.416260149, 4.748723377, 2.53667403, 2.176098557, 2.197292445,
-#         2.354199463, 2.072011947, 3.533379451, 3.063003349, 1.945967411,
-#         6.527551915, 4.357026494, 5.073242529, 3.424252069, 3.921038779,
-#         2.427412431, 2.067521245, 5.70467776, 3.56606508, 2.119873733,
-#         2.951205022, 4.612656151, 2.655314944, 3.181449095, 6.346458486,
-#         2.461554532, 4.555679189, 1.731053717, 3.834171821, 4.873346273
-#     ],
-#     "Yxg": [
-#         9.991344746, 5.580413761, 7.027678957, 7.361149947, 5.625461807,
-#         8.235517554, 8.140244314, 9.958499624, 9.871331923, 9.98318681,
-#         6.234102728, 9.522424884, 9.457671514, 9.999774574, 9.991795607,
-#         9.960162077, 9.996226996, 6.995949687, 6.164420288, 5.667888267,
-#         9.909192638, 9.998376888, 9.000361131, 6.395466734, 7.207737619,
-#         5.914804949, 9.595856869, 5.697474361, 9.999686985, 9.997187093
-#     ],
-#     "Yxf": [
-#         1.642634, 1.642634, 1.642634, 1.642634, 1.642634,
-#         1.642634, 1.642634, 1.642634, 1.642634, 1.642634,
-#         1.642634, 1.642634, 1.642634, 1.642634, 1.642634,
-#         1.642634, 1.642634, 1.642634, 1.642634, 1.642634,
-#         1.642634, 1.642634, 1.642634, 1.642634, 1.642634,
-#         1.642634, 1.642634, 1.642634, 1.642634, 1.642634
-#     ],
-#     "Yeg": [
-#         0.580738471, 0.358216272, 0.589804143, 0.422721152, 0.223618323,
-#         0.334023374, 0.436034377, 0.274905805, 0.454176146, 0.342181722,
-#         0.320149437, 0.500510895, 0.566511753, 0.451717108, 0.570304104,
-#         0.599681542, 0.564328667, 0.272824981, 0.496602885, 0.289485931,
-#         0.602186605, 0.594369899, 0.393699066, 0.582809422, 0.606686477,
-#         0.311984412, 0.485217522, 0.653406549, 0.67902188, 0.54004091
-#     ],
-#     "Yef": [
-#         0.30876599, 0.608281052, 0.299320903, 0.412146877, 0.722679164,
-#         0.529533277, 0.473879284, 0.593714051, 0.370208632, 0.511170627,
-#         0.547531004, 0.330054858, 0.269391646, 0.461103743, 0.275390951,
-#         0.192598341, 0.208208705, 0.706479051, 0.355080876, 0.508933506,
-#         0.146048629, 0.255788255, 0.471549057, 0.100000301, 0.253045962,
-#         0.529204287, 0.421995461, 0.223571637, 0.2256859, 0.278345778
-#     ],
-# }
 
 
 FIXED_PARAMS = {
@@ -542,6 +436,109 @@ def build_param_vector(param_dict):
 # ============================================================
 # UTILIDADES DE DATASETS
 # ============================================================
+
+def compute_validation_cost(sol, sugars_profile, Et_final_exp, penalty=1e12, eps=1e-8):
+    """Calcula los costos de validación separados.
+
+    Costo azúcar:
+        mean(((S_sim - S_exp) / max(abs(S_exp)))**2)
+
+    Costo etanol:
+        ((E_final_sim - E_final_exp) / abs(E_final_exp))**2
+
+    Costo total:
+        costo_azúcar + costo_etanol
+
+    Nota: estos costos son adimensionales porque están normalizados.
+    No son errores en g/L ni en %.
+
+    Retorna una tupla (costo_azúcar, costo_etanol, costo_total).
+    """
+    y = sol.y.T
+    sugars_sim = np.asarray(y[:, 2] + y[:, 3], dtype=float)
+    Et_final_sim = float(y[-1, 4])
+
+    sugars_profile = np.asarray(sugars_profile, dtype=float)
+    Et_final_exp = float(Et_final_exp)
+
+    if len(sugars_sim) != len(sugars_profile):
+        return penalty, penalty, penalty
+
+    if not (np.all(np.isfinite(sugars_sim)) and np.isfinite(Et_final_sim)):
+        return penalty, penalty, penalty
+
+    sugar_scale = max(np.max(np.abs(sugars_profile)), eps)
+    ethanol_scale = max(abs(Et_final_exp), eps)
+
+    sugar_res = (sugars_sim - sugars_profile) / sugar_scale
+    etoh_res = (Et_final_sim - Et_final_exp) / ethanol_scale
+
+    sugar_error_mean = float(np.mean(sugar_res ** 2))
+    ethanol_error = float(etoh_res ** 2)
+    objective_total = float(sugar_error_mean + ethanol_error)
+
+    return sugar_error_mean, ethanol_error, objective_total
+
+
+def compute_validation_costs_for_datasets(datasets, median_params_dict):
+    """Calcula los costos de validación separados (azúcar, etanol, total) para todos los datasets.
+    
+    Retorna tres diccionarios: costs_sugar, costs_ethanol, costs_total.
+    """
+    costs_sugar = {}
+    costs_ethanol = {}
+    costs_total = {}
+    
+    for dataset in datasets:
+        try:
+            # Preparar parámetros
+            params_vector = build_param_vector(median_params_dict)
+            x0_og = np.asarray(dataset["x0"], dtype=float)
+            
+            # Extraer estados desde x0
+            X0 = x0_og[0]
+            N0 = x0_og[1]
+            E0 = x0_og[4]
+            
+            # Preparar azúcares iniciales
+            if dataset["sugar_initial"] is not None:
+                S0 = float(dataset["sugar_initial"])
+            else:
+                S0 = 0.0
+            
+            G0 = S0 / 2
+            F0 = S0 / 2
+            x0 = np.array([X0, N0, G0, F0, E0], dtype=float)
+            
+            # Simular con los parámetros medianos
+            sol = simulate_system(
+                x0=x0,
+                t_rel=dataset["t_rel"],
+                temp=dataset["temp"],
+                Nadd=dataset["Nadd"],
+                tspan=dataset["t_span"],
+                params_list=params_vector,
+            )
+            
+            # Calcular los costos (retorna tupla: sugar, ethanol, total)
+            sugar_cost, ethanol_cost, total_cost = compute_validation_cost(
+                sol,
+                dataset["sugars_profile"],
+                dataset["Et_final_exp"],
+            )
+            
+            costs_sugar[dataset["id"]] = float(sugar_cost)
+            costs_ethanol[dataset["id"]] = float(ethanol_cost)
+            costs_total[dataset["id"]] = float(total_cost)
+            
+        except Exception as e:
+            print(f"Advertencia: Error calculando costo para dataset {dataset['id']}: {e}")
+            costs_sugar[dataset["id"]] = np.nan
+            costs_ethanol[dataset["id"]] = np.nan
+            costs_total[dataset["id"]] = np.nan
+    
+    return costs_sugar, costs_ethanol, costs_total
+
 
 def choose_datasets_by_ids(datasets_info, dataset_ids):
     if len(dataset_ids) == 0:
@@ -691,11 +688,97 @@ def simulate_dataset_with_std_band(dataset, k_std):
     }
 
 
+def simulate_dataset_ethanol_with_std_band(dataset, k_std):
+    """
+    Para un dataset y un k_std, calcula:
+    - curva etanol central con mediana
+    - curva etanol con mediana + k_std*std
+    - curva etanol con mediana - k_std*std
+    - banda low/high entre ambas curvas extremas
+
+    Todo interpolado a los tiempos experimentales.
+    """
+    t_exp = np.asarray(dataset["t_rel"], dtype=float)
+    
+    central_params = build_median_param_dict()
+    plus_params = build_std_shift_param_dict(k_std=k_std, sign=1)
+    minus_params = build_std_shift_param_dict(k_std=k_std, sign=-1)
+
+    # Simular cada escenario
+    params_vector_central = build_param_vector(central_params)
+    params_vector_plus = build_param_vector(plus_params)
+    params_vector_minus = build_param_vector(minus_params)
+    
+    x0_og = np.asarray(dataset["x0"], dtype=float)
+    X0, N0, E0 = x0_og[0], x0_og[1], x0_og[4]
+    S0 = float(dataset["sugar_initial"]) if dataset["sugar_initial"] is not None else 0.0
+    G0, F0 = S0 / 2, S0 / 2
+    x0 = np.array([X0, N0, G0, F0, E0], dtype=float)
+    
+    sol_central = simulate_system(
+        x0=x0, t_rel=dataset["t_rel"], temp=dataset["temp"], Nadd=dataset["Nadd"],
+        tspan=dataset["t_span"], params_list=params_vector_central
+    )
+    sol_plus = simulate_system(
+        x0=x0, t_rel=dataset["t_rel"], temp=dataset["temp"], Nadd=dataset["Nadd"],
+        tspan=dataset["t_span"], params_list=params_vector_plus
+    )
+    sol_minus = simulate_system(
+        x0=x0, t_rel=dataset["t_rel"], temp=dataset["temp"], Nadd=dataset["Nadd"],
+        tspan=dataset["t_span"], params_list=params_vector_minus
+    )
+    
+    # Extraer curvas de etanol
+    t_sim = np.asarray(sol_central.t, dtype=float)
+    Et_central_curve = np.asarray(sol_central.y[4, :], dtype=float)
+    Et_plus_curve = np.asarray(sol_plus.y[4, :], dtype=float)
+    Et_minus_curve = np.asarray(sol_minus.y[4, :], dtype=float)
+    
+    # Interpolar a tiempos experimentales
+    Et_central = np.interp(t_exp, t_sim, Et_central_curve)
+    Et_plus = np.interp(t_exp, t_sim, Et_plus_curve)
+    Et_minus = np.interp(t_exp, t_sim, Et_minus_curve)
+    
+    # Banda de incertidumbre
+    band_low = np.minimum(Et_plus, Et_minus)
+    band_high = np.maximum(Et_plus, Et_minus)
+    
+    # Valores finales
+    Et_central_final = float(Et_central[-1])
+    Et_exp = float(dataset["Et_final_exp"])
+    
+    # Calcular errores basados en valores finales.
+    # Diferencia firmada: indica si la simulación sobreestima (+) o subestima (-).
+    # Error absoluto: magnitud de la diferencia en la misma unidad de Et_exp.
+    # Error relativo absoluto: error_abs / abs(Et_exp), reportado luego como porcentaje.
+    error_signed = Et_central_final - Et_exp
+    error_abs = abs(error_signed)
+    error_rel = error_abs / abs(Et_exp) if abs(Et_exp) > 1e-8 else np.nan
+    
+    # Marcar valores válidos
+    valid = np.isfinite(t_exp) & np.isfinite(Et_central) & np.isfinite(Et_exp)
+    
+    return {
+        "t_exp": t_exp,
+        "Et_central": Et_central,
+        "Et_plus": Et_plus,
+        "Et_minus": Et_minus,
+        "band_low": band_low,
+        "band_high": band_high,
+        "Et_exp": Et_exp,
+        "Et_central_final": Et_central_final,
+        "error_signed": error_signed,
+        "error_abs": error_abs,
+        "error_rel": error_rel,
+        "valid": valid,
+    }
+
+
 # ============================================================
 # GRÁFICOS
 # ============================================================
 
-def plot_dataset_on_axis(ax, dataset, result, k_std, idx=0, show_dataset_label=True):
+def plot_dataset_on_axis(ax, dataset, result, k_std, idx=0, show_dataset_label=True, val_cost=None):
     marker = DATASET_MARKERS[idx % len(DATASET_MARKERS)]
 
     t = result["t_exp"]
@@ -737,11 +820,65 @@ def plot_dataset_on_axis(ax, dataset, result, k_std, idx=0, show_dataset_label=T
     )
 
     ax.set_xlabel("Tiempo real desde inicio de fermentación (días)")
-    ax.set_ylabel("Azúcares totales, S = G + F (g/L)")
+    ax.set_ylabel(f"Azúcares totales, S = G + F ({SUGAR_UNIT})")
     ax.grid(True, alpha=0.30)
 
 
-def plot_std_band_figure(datasets, results_by_dataset, k_std, plot_mode="single"):
+def plot_ethanol_on_axis(ax, dataset, result, k_std, idx=0, show_dataset_label=True, val_cost=None):
+    """Plotea la curva completa de etanol con banda de incertidumbre."""
+    marker = DATASET_MARKERS[idx % len(DATASET_MARKERS)]
+    
+    dataset_label = f"Set {dataset['id']}"
+    
+    t = result["t_exp"] / 24  # Convertir a días
+    valid = result["valid"]
+    
+    # Plotear banda de incertidumbre
+    ax.fill_between(
+        t[valid],
+        result["band_low"][valid],
+        result["band_high"][valid],
+        color="#f08080",
+        alpha=0.18,
+        linewidth=0,
+        label=f"Banda ±{k_std} DE",
+    )
+    
+    # Plotear curva central de etanol
+    ax.plot(
+        t[valid],
+        result["Et_central"][valid],
+        color="black",
+        linewidth=1.7,
+        marker=marker,
+        markersize=5.5,
+        markerfacecolor="black",
+        markeredgecolor="black",
+        label="Mediana parámetros" if not show_dataset_label else f"Mediana {dataset_label}",
+    )
+    
+    # Plotear punto final experimental
+    ax.plot(
+        t[valid][-1],
+        result["Et_exp"],
+        color="tab:blue",
+        linewidth=2,
+        marker=marker,
+        markersize=8,
+        markerfacecolor="tab:blue",
+        markeredgecolor="tab:blue",
+        label="Datos experimentales" if not show_dataset_label else f"Datos {dataset_label}",
+        zorder=5,
+    )
+    
+    ax.set_xlabel("Tiempo real desde inicio de fermentación (días)")
+    ax.set_ylabel(f"Etanol final ({ETHANOL_UNIT})")
+    ax.grid(True, alpha=0.30)
+
+
+def plot_std_band_figure(datasets, results_by_dataset, k_std, plot_mode="single", validation_costs=None):
+    if validation_costs is None:
+        validation_costs = {}
 
     if plot_mode == "single":
         fig, ax = plt.subplots(figsize=(14, 8.5))
@@ -754,6 +891,7 @@ def plot_std_band_figure(datasets, results_by_dataset, k_std, plot_mode="single"
                 k_std=k_std,
                 idx=idx,
                 show_dataset_label=True,
+                val_cost=validation_costs.get(dataset["id"], None),
             )
 
         ax.set_title(
@@ -777,11 +915,14 @@ def plot_std_band_figure(datasets, results_by_dataset, k_std, plot_mode="single"
 
         metrics_lines = []
         for dataset, result in zip(datasets, results_by_dataset):
-            metrics_lines.append(
+            line = (
                 f"Set {dataset['id']} - {clean_dataset_name(dataset['name'])}: "
                 f"RMSE = {result['rmse']:.3f} g/L; "
                 f"NRMSE = {100 * result['nrmse']:.2f}%"
             )
+            if dataset["id"] in validation_costs:
+                line += f"; Costo azúcar = {validation_costs[dataset['id']]: .4f}"
+            metrics_lines.append(line)
 
         fig.text(
             0.07,
@@ -803,7 +944,7 @@ def plot_std_band_figure(datasets, results_by_dataset, k_std, plot_mode="single"
         plt.show()
 
     elif plot_mode == "subplots":
-        fig, axes = plt.subplots(2, 2, figsize=(15, 9.5), sharex=False, sharey=False)
+        fig, axes = plt.subplots(2, 2, figsize=(14, 8.5), sharex=False, sharey=False)
         axes = axes.flatten()
 
         for idx, (ax, dataset, result) in enumerate(zip(axes, datasets, results_by_dataset)):
@@ -814,11 +955,18 @@ def plot_std_band_figure(datasets, results_by_dataset, k_std, plot_mode="single"
                 k_std=k_std,
                 idx=idx,
                 show_dataset_label=False,
+                val_cost=validation_costs.get(dataset["id"], None),
             )
 
-            ax.set_title(
+            title = (
                 f"Set {dataset['id']} - {clean_dataset_name(dataset['name'])}\n"
-                f"RMSE = {result['rmse']:.3f} g/L | NRMSE = {100 * result['nrmse']:.2f}%",
+                f"RMSE = {result['rmse']:.3f} g/L | NRMSE = {100 * result['nrmse']:.2f}%"
+            )
+            if dataset["id"] in validation_costs:
+                title += f" | Costo azúcar = {validation_costs[dataset['id']]: .4f}"
+            
+            ax.set_title(
+                title,
                 fontsize=10.5,
                 pad=10,
             )
@@ -847,13 +995,133 @@ def plot_std_band_figure(datasets, results_by_dataset, k_std, plot_mode="single"
         raise ValueError("plot_mode debe ser 'single' o 'subplots'.")
 
 
+def plot_ethanol_figure(datasets, results_by_dataset, k_std, plot_mode="single", validation_costs=None):
+    """Plotea etanol final con incertidumbre para todos los datasets."""
+    if validation_costs is None:
+        validation_costs = {}
+
+    if plot_mode == "single":
+        fig, ax = plt.subplots(figsize=(14, 8.5))
+
+        for idx, (dataset, result) in enumerate(zip(datasets, results_by_dataset)):
+            plot_ethanol_on_axis(
+                ax=ax,
+                dataset=dataset,
+                result=result,
+                k_std=k_std,
+                idx=idx,
+                show_dataset_label=True,
+                val_cost=validation_costs.get(dataset["id"], None),
+            )
+
+        ax.set_title(
+            f"Validación de etanol final con banda ±{k_std} desviación estándar\n"
+            f"Valor central con mediana de parámetros; n = {N_PARAM_SAMPLES} muestras por parámetro",
+            fontsize=14,
+            pad=14,
+        )
+
+        handles, labels = ax.get_legend_handles_labels()
+        unique = dict(zip(labels, handles))
+
+        ax.legend(
+            unique.values(),
+            unique.keys(),
+            loc="upper right",
+            fontsize=8.5,
+            frameon=True,
+            ncol=2,
+        )
+
+        metrics_lines = []
+        for dataset, result in zip(datasets, results_by_dataset):
+            line = (
+                f"Set {dataset['id']} - {clean_dataset_name(dataset['name'])}: "
+                f"Error abs = {result['error_abs']:.3f} {ETHANOL_UNIT}; "
+                f"Error rel = {100 * result['error_rel']:.2f}%"
+            )
+            if dataset["id"] in validation_costs:
+                line += f"; Costo etanol = {validation_costs[dataset['id']]: .4f}"
+            metrics_lines.append(line)
+
+        fig.text(
+            0.07,
+            0.035,
+            "\n".join(metrics_lines),
+            ha="left",
+            va="bottom",
+            fontsize=9,
+            bbox=dict(boxstyle="round,pad=0.35", facecolor="white", alpha=0.92),
+        )
+
+        fig.subplots_adjust(
+            left=0.08,
+            right=0.98,
+            bottom=0.22,
+            top=0.86,
+        )
+
+        plt.show()
+
+    elif plot_mode == "subplots":
+        fig, axes = plt.subplots(2, 2, figsize=(14, 8.5), sharex=False, sharey=False)
+        axes = axes.flatten()
+
+        for idx, (ax, dataset, result) in enumerate(zip(axes, datasets, results_by_dataset)):
+            plot_ethanol_on_axis(
+                ax=ax,
+                dataset=dataset,
+                result=result,
+                k_std=k_std,
+                idx=idx,
+                show_dataset_label=False,
+                val_cost=validation_costs.get(dataset["id"], None),
+            )
+
+            title = (
+                f"Set {dataset['id']} - {clean_dataset_name(dataset['name'])}\n"
+                f"Error abs = {result['error_abs']:.3f} {ETHANOL_UNIT} | Error rel = {100 * result['error_rel']:.2f}%"
+            )
+            if dataset["id"] in validation_costs:
+                title += f" | Costo etanol = {validation_costs[dataset['id']]: .4f}"
+            
+            ax.set_title(
+                title,
+                fontsize=10.5,
+                pad=10,
+            )
+
+            ax.legend(
+                loc="best",
+                fontsize=8,
+                frameon=True,
+            )
+
+        # Si hay menos de 4 datasets, apaga ejes sobrantes
+        for ax in axes[len(datasets):]:
+            ax.axis("off")
+
+        fig.suptitle(
+            f"Validación de etanol final con banda ±{k_std} desviación estándar\n"
+            f"Valor central con mediana de parámetros; n = {N_PARAM_SAMPLES} muestras por parámetro",
+            fontsize=14,
+            y=0.98,
+        )
+
+        fig.tight_layout(rect=[0, 0, 1, 0.93])
+        plt.show()
+
+    else:
+        raise ValueError("plot_mode debe ser 'single' o 'subplots'.")
+
+
 # ============================================================
 # MAIN
 # ============================================================
 
 def main():
     print("=" * 80)
-    print("VALIDACIÓN DE AZÚCARES CON BANDAS ± DESVIACIÓN ESTÁNDAR")
+    print("VALIDACIÓN DE AZÚCARES Y ETANOL CON BANDAS ± DESVIACIÓN ESTÁNDAR")
     print("=" * 80)
 
     validate_free_param_sample_lengths()
@@ -883,21 +1151,68 @@ def main():
         print(f"  Dataset {item['id']:02d}: {item['name']}")
         datasets.append(build_dataset(item))
 
-    for k_std in [1, 2]:
-        print(f"\nCalculando curvas para banda ±{k_std} desviación estándar:")
+    # Calcular costos de validación separados
+    median_params_dict = build_median_param_dict()
+    costs_sugar, costs_ethanol, costs_total = compute_validation_costs_for_datasets(datasets, median_params_dict)
+    
+    print("\nCostos de validación calculados:")
+    print("  Set ID | Costo Azúcar | Costo Etanol | Costo Total")
+    print("  " + "-" * 52)
+    for dataset_id in [d["id"] for d in datasets]:
+        sugar_c = costs_sugar.get(dataset_id, np.nan)
+        ethanol_c = costs_ethanol.get(dataset_id, np.nan)
+        total_c = costs_total.get(dataset_id, np.nan)
+        sugar_str = f"{sugar_c:.6f}" if not np.isnan(sugar_c) else "error"
+        ethanol_str = f"{ethanol_c:.6f}" if not np.isnan(ethanol_c) else "error"
+        total_str = f"{total_c:.6f}" if not np.isnan(total_c) else "error"
+        print(f"  {dataset_id:5d} | {sugar_str:12s} | {ethanol_str:12s} | {total_str:12s}")
 
-        results = []
+    for k_std in [1, 2]:
+        print(f"\n{'='*80}")
+        print(f"Calculando curvas para banda ±{k_std} desviación estándar:")
+        print(f"{'='*80}")
+
+        # Simulaciones de azúcar
+        print(f"\nSimulando AZÚCAR ±{k_std} DE:")
+        sugar_results = []
         for dataset in datasets:
             print(f"  Set {dataset['id']:02d} - {dataset['name']}")
             result = simulate_dataset_with_std_band(dataset, k_std=k_std)
-            results.append(result)
-
+            sugar_results.append(result)
+            sugar_cost = costs_sugar.get(dataset["id"], np.nan)
             print(
-                f"    RMSE = {result['rmse']:.4f} g/L; "
-                f"NRMSE = {100 * result['nrmse']:.2f}%"
+                f"    RMSE azúcar = {result['rmse']:.4f} {SUGAR_UNIT}; "
+                f"NRMSE azúcar = {100 * result['nrmse']:.2f}%; "
+                f"Costo azúcar = {sugar_cost:.6f}"
             )
 
-        plot_std_band_figure(datasets, results, k_std=k_std, plot_mode=PLOT_MODE)
+        # Simulaciones de etanol
+        print(f"\nSimulando ETANOL ±{k_std} DE:")
+        ethanol_results = []
+        for dataset in datasets:
+            print(f"  Set {dataset['id']:02d} - {dataset['name']}")
+            result = simulate_dataset_ethanol_with_std_band(dataset, k_std=k_std)
+            ethanol_results.append(result)
+            ethanol_cost = costs_ethanol.get(dataset["id"], np.nan)
+            print(
+                f"    Error etanol firmado sim-exp = {result['error_signed']:.3f} {ETHANOL_UNIT}; "
+                f"Error absoluto etanol = {result['error_abs']:.3f} {ETHANOL_UNIT}; "
+                f"Error relativo etanol = {100 * result['error_rel']:.2f}%; "
+                f"Costo etanol = {ethanol_cost:.6f}"
+            )
+
+        # Generar figuras de azúcar
+        print(f"\nGenerando figura de AZÚCAR ±{k_std} DE...")
+        plot_std_band_figure(datasets, sugar_results, k_std=k_std, plot_mode=PLOT_MODE, validation_costs=costs_sugar)
+
+        # Generar figuras de etanol
+        print(f"Generando figura de ETANOL ±{k_std} DE...")
+        plot_ethanol_figure(datasets, ethanol_results, k_std=k_std, plot_mode=PLOT_MODE, validation_costs=costs_ethanol)
+
+    print("\n" + "=" * 80)
+    print("¡Validación completada!")
+    print("=" * 80)
 
 if __name__ == "__main__":
     main()
+

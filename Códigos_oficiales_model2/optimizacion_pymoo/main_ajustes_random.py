@@ -61,7 +61,7 @@ CUSTOM_PSO_CONFIG["c2"] = 1.5
 CUSTOM_PSO_CONFIG["seed"] = 123
 CUSTOM_PSO_CONFIG["verbose"] = False
 CUSTOM_PSO_CONFIG["save_history"] = False
-CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 0.00005 # antes estaba en 1e-3, otro es 1e-4
+CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 0.0001 # antes estaba en 1e-3, otro es 1e-4
 
 
 # ============================================================

@@ -43,8 +43,7 @@ from pymoo_opt import (
 # ============================================================
 
 N_ITERATIONS = 50
-N_VALIDATION = 0
-N_HOLDOUT = 4
+VALIDATION_IDS = (3, 4, 11, 14)  # IDs fijos de validación
 N_TRAIN = 5
 MAX_WORKERS = 5
 
@@ -53,7 +52,7 @@ OUTPUT_BASENAME = "resultados_cv_pymoo_100k"
 MODEL_STRUCTURE = MODEL_2264
 
 CUSTOM_PSO_CONFIG = PSO_CONFIG.copy()
-CUSTOM_PSO_CONFIG["epoch"] = 2000
+CUSTOM_PSO_CONFIG["epoch"] = 3000
 CUSTOM_PSO_CONFIG["pop_size"] = 25
 CUSTOM_PSO_CONFIG["w"] = 0.5
 CUSTOM_PSO_CONFIG["c1"] = 1.5
@@ -61,7 +60,7 @@ CUSTOM_PSO_CONFIG["c2"] = 1.5
 CUSTOM_PSO_CONFIG["seed"] = 123
 CUSTOM_PSO_CONFIG["verbose"] = False
 CUSTOM_PSO_CONFIG["save_history"] = False
-CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 1e-4 # antes estaba en 1e-3
+CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 1e-4 # antes estaba en 1e-3 0.0001
 
 
 # ============================================================
@@ -230,8 +229,9 @@ def build_all_datasets(datasets_info):
     return datasets_by_id
 
 
-def generate_unique_validation_splits(dataset_ids, n_train, n_iterations, holdout_ids):
-    remaining_ids = sorted(set(dataset_ids) - set(holdout_ids))
+def generate_unique_validation_splits(dataset_ids, n_train, n_iterations, validation_ids):
+    """Genera splits de entrenamiento con sets de validación fijos."""
+    remaining_ids = sorted(set(dataset_ids) - set(validation_ids))
     all_combos = list(combinations(remaining_ids, n_train))
 
     max_possible = len(all_combos)
@@ -244,7 +244,7 @@ def generate_unique_validation_splits(dataset_ids, n_train, n_iterations, holdou
     selected = random.sample(all_combos, n_iterations)
 
     splits = []
-    holdout_ids = tuple(sorted(holdout_ids))
+    validation_ids = tuple(sorted(validation_ids))
 
     for i, train_ids in enumerate(selected, start=1):
         train_ids = tuple(sorted(train_ids))
@@ -252,7 +252,7 @@ def generate_unique_validation_splits(dataset_ids, n_train, n_iterations, holdou
         splits.append({
             "iteration": i,
             "train_ids": train_ids,
-            "val_ids": holdout_ids,
+            "val_ids": validation_ids,
         })
 
     return splits
@@ -285,7 +285,7 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
 
     iteration = split["iteration"]
     train_ids = split["train_ids"]
-    separated_ids = split["val_ids"]
+    val_ids = split["val_ids"]
 
     try:
         train_datasets = [datasets_by_id[i] for i in train_ids]
@@ -299,8 +299,41 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
         best_params_vector = params_dict_to_vector(best_params, PARAM_ORDER)
 
         costo_ajuste = float(result_fit["fun"])
-        costo_validacion = 0.0
-        costo_total = float(costo_ajuste)
+
+        # Calcular costo de validación para cada set de validación
+        validation_costs = {}
+        costo_validacion_total = 0.0
+        
+        for val_id in val_ids:
+            val_dataset = datasets_by_id[val_id]
+            
+            try:
+                # Simular el sistema con los parámetros encontrados
+                sol = simulate_system(
+                    best_params,
+                    val_dataset["x0"],
+                    val_dataset["t_span"],
+                    val_dataset["t_rel"],
+                    val_dataset["temp"],
+                    val_dataset["Nadd"],
+                )
+                
+                # Calcular el costo usando la función objetivo
+                cost_info = compute_validation_cost(
+                    sol,
+                    val_dataset["sugars_profile"],
+                    val_dataset["Et_final_exp"],
+                )
+                
+                val_cost = cost_info["objective_total"]
+                validation_costs[f"costo_val_id_{val_id}"] = float(val_cost)
+                costo_validacion_total += float(val_cost)
+                
+            except Exception as e:
+                validation_costs[f"costo_val_id_{val_id}"] = np.nan
+        
+        # Promedio de costos de validación
+        costo_validacion_promedio = costo_validacion_total / len(val_ids) if val_ids else 0.0
 
         elapsed = time.perf_counter() - start
         end_clock = datetime.now()
@@ -314,16 +347,12 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "duracion_min": float(elapsed / 60.0),
 
             "ids_ajuste": ",".join(map(str, train_ids)),
-            "ids_validacion": "",
-            "ids_separados": ",".join(map(str, separated_ids)),
-
+            "ids_validacion": ",".join(map(str, val_ids)),
             "nombres_ajuste": " | ".join(datasets_by_id[i]["name"] for i in train_ids),
-            "nombres_validacion": "",
-            "nombres_separados": " | ".join(datasets_by_id[i]["name"] for i in separated_ids),
+            "nombres_validacion": " | ".join(datasets_by_id[i]["name"] for i in val_ids),
 
             "costo_ajuste": costo_ajuste,
-            "costo_validacion": costo_validacion,
-            "costo_total": costo_total,
+            "costo_validacion_promedio": float(costo_validacion_promedio),
 
             "stop_reason": termination_info.get("stop_reason"),
             "stop_iteration": termination_info.get("stop_iteration"),
@@ -331,6 +360,9 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "umbral_relativo": termination_info.get("threshold"),
             "max_epoch": termination_info.get("max_epoch"),
         }
+        
+        # Agregar costos individuales de validación
+        row.update(validation_costs)
 
         for param_name, param_value in zip(PARAM_ORDER, best_params_vector):
             row[param_name] = float(param_value)
@@ -338,8 +370,7 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
         summary = {
             "iteracion": iteration,
             "costo_ajuste": costo_ajuste,
-            "costo_validacion": costo_validacion,
-            "costo_total": costo_total,
+            "costo_validacion": costo_validacion_promedio,
             "duracion_s": float(elapsed),
             "hora_fin": row["hora_fin"],
             "umbral_relativo": termination_info.get("threshold"),
@@ -365,16 +396,12 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "duracion_min": float(elapsed / 60.0),
 
             "ids_ajuste": ",".join(map(str, train_ids)),
-            "ids_validacion": "",
-            "ids_separados": ",".join(map(str, separated_ids)),
-
+            "ids_validacion": ",".join(map(str, val_ids)),
             "nombres_ajuste": " | ".join(datasets_by_id[i]["name"] for i in train_ids),
-            "nombres_validacion": "",
-            "nombres_separados": " | ".join(datasets_by_id[i]["name"] for i in separated_ids),
+            "nombres_validacion": " | ".join(datasets_by_id[i]["name"] for i in val_ids),
 
             "costo_ajuste": np.nan,
-            "costo_validacion": np.nan,
-            "costo_total": np.nan,
+            "costo_validacion_promedio": np.nan,
 
             "stop_reason": "error",
             "stop_iteration": np.nan,
@@ -384,6 +411,10 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "error_message": str(e),
             "traceback": traceback.format_exc(),
         }
+        
+        # Agregar columnas para costos individuales de validación (como NaN en caso de error)
+        for val_id in val_ids:
+            row[f"costo_val_id_{val_id}"] = np.nan
 
         for param_name in PARAM_ORDER:
             row[param_name] = np.nan
@@ -392,13 +423,15 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
             "iteracion": iteration,
             "costo_ajuste": np.nan,
             "costo_validacion": np.nan,
-            "costo_total": np.nan,
             "duracion_s": float(elapsed),
             "hora_fin": row["hora_fin"],
             "umbral_relativo": np.nan,
             "stop_iteration": np.nan,
             "final_ratio": np.nan,
         }
+        
+        for param_name in PARAM_ORDER:
+            row[param_name] = np.nan
 
         return {
             "ok": False,
@@ -414,7 +447,7 @@ def run_single_split(split, datasets_by_id, model_structure, pso_config):
 
 def main():
     print("=" * 80)
-    print("VALIDACIÓN CRUZADA ALEATORIA REPETIDA - PYMOO PSO")
+    print("VALIDACIÓN CON SETS DE VALIDACIÓN FIJOS - PYMOO PSO")
     print("=" * 80)
 
     if len(DATASETS_INFO) == 0:
@@ -422,16 +455,17 @@ def main():
 
     dataset_ids = [item["id"] for item in DATASETS_INFO]
 
-    if N_TRAIN + N_HOLDOUT > len(dataset_ids):
-        raise ValueError(
-            "N_TRAIN + conjuntos separados no puede ser mayor al total de datasets."
-        )
-
-    holdout_ids = tuple(sorted(random.sample(dataset_ids, N_HOLDOUT)))
-    remaining_ids = sorted(set(dataset_ids) - set(holdout_ids))
+    # Validar que los IDs de validación existan
+    validation_ids = tuple(sorted(VALIDATION_IDS))
+    for val_id in validation_ids:
+        if val_id not in dataset_ids:
+            raise ValueError(f"ID de validación {val_id} no existe en DATASETS_INFO")
+    
+    remaining_ids = sorted(set(dataset_ids) - set(validation_ids))
     total_possible = math.comb(len(remaining_ids), N_TRAIN)
-    print(f"Sets separados fijos: {holdout_ids}")
-    print(f"Cantidad total de combinaciones únicas posibles: {total_possible}")
+    
+    print(f"Sets de validación fijos: {validation_ids}")
+    print(f"Cantidad total de combinaciones únicas posibles para entrenamiento: {total_possible}")
     print(f"Iteraciones pedidas: {N_ITERATIONS}")
     print(f"Workers: {MAX_WORKERS}")
     output_dir = create_output_dir()
@@ -441,7 +475,7 @@ def main():
     print(f"Archivo principal: {output_excel}")
     print(f"Archivo de detalle: {output_excel_details}")
     print("Semilla PSO fija: 123")
-    print("Splits aleatorios sin seed fija")
+    print("Splits de entrenamiento aleatorios sin seed fija")
 
     datasets_by_id = build_all_datasets(DATASETS_INFO)
 
@@ -449,7 +483,7 @@ def main():
         dataset_ids=dataset_ids,
         n_train=N_TRAIN,
         n_iterations=N_ITERATIONS,
-        holdout_ids=holdout_ids,
+        validation_ids=validation_ids,
     )
 
     print("\nSplits generados correctamente.")
@@ -457,7 +491,7 @@ def main():
     for split in splits[:min(5, len(splits))]:
         print(
             f"Iteración {split['iteration']:02d} -> "
-            f"separados {split['val_ids']} | ajuste {split['train_ids']}"
+            f"validación {split['val_ids']} | entrenamiento {split['train_ids']}"
         )
 
     results = []
@@ -493,8 +527,7 @@ def main():
                 print(
                     f"[{status}] Iteración {summary['iteracion']:03d} | "
                     f"Ajuste = {summary['costo_ajuste']:.6f} | "
-                    f"Separados = {summary['costo_validacion']:.6f} | "
-                    f"Total = {summary['costo_total']:.6f} | "
+                    f"Validación = {summary['costo_validacion']:.6f} | "
                     f"Duración = {format_elapsed(summary['duracion_s'])} | "
                     f"Hora = {summary['hora_fin']}"
                 )
@@ -527,15 +560,16 @@ def main():
         print("\nResumen final:")
         print(f"Corridas registradas: {len(df)}")
 
-        if "costo_total" in df.columns:
-            valid_costs = df["costo_total"].dropna()
+        if "costo_validacion_promedio" in df.columns:
+            valid_costs = df["costo_validacion_promedio"].dropna()
             if len(valid_costs) > 0:
                 best_idx = valid_costs.idxmin()
                 best_row = df.loc[best_idx]
 
                 print(f"Mejor iteración: {int(best_row['iteracion'])}")
-                print(f"Mejor costo total: {best_row['costo_total']:.6f}")
-                print(f"Sets separados de esa iteración: {best_row['ids_separados']}")
+                print(f"Mejor costo de validación promedio: {best_row['costo_validacion_promedio']:.6f}")
+                print(f"Costo de ajuste: {best_row['costo_ajuste']:.6f}")
+                print(f"Sets de validación: {best_row['ids_validacion']}")
 
 
 if __name__ == "__main__":

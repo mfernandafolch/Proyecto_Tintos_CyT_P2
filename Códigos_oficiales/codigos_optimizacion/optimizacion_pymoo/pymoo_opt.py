@@ -48,11 +48,12 @@ BOUNDS_DICT = {
     "Kig0": (1e-1, 100.0),
     "Kie0": (1e-1, 100.0),
     "Yxn": (1e-1, 10.0),
-    "Yxg": (1e-1, 10.0),
-    "Yxf": (1e-1, 10.0),
-    "Yeg": (1e-1, 10.0),
-    "Yef": (1e-1, 10.0),
+    "Yxg": (1e-2, 1.0),
+    "Yxf": (1e-2, 1.0),
+    "Yeg": (1e-1, 1.0),
+    "Yef": (1e-1, 1.0),
 }
+
 
 PSO_CONFIG = {
     "epoch": 1000,
@@ -410,7 +411,7 @@ def run_pymoo_estimation(
         w=w,
         c1=c1,
         c2=c2,
-        adaptive=False
+        adaptive=False,
     )
 
     relative_gap_termination = RelativeGapTermination(
