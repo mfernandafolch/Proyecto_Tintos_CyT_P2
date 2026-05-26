@@ -53,7 +53,7 @@ OUTPUT_BASENAME = "resultados_cv_pymoo_100k"
 MODEL_STRUCTURE = MODEL_COLEMAN
 
 CUSTOM_PSO_CONFIG = PSO_CONFIG.copy()
-CUSTOM_PSO_CONFIG["epoch"] = 2000
+CUSTOM_PSO_CONFIG["epoch"] = 3000
 CUSTOM_PSO_CONFIG["pop_size"] = 25
 CUSTOM_PSO_CONFIG["w"] = 0.5
 CUSTOM_PSO_CONFIG["c1"] = 1.5
@@ -61,7 +61,7 @@ CUSTOM_PSO_CONFIG["c2"] = 1.5
 CUSTOM_PSO_CONFIG["seed"] = 123
 CUSTOM_PSO_CONFIG["verbose"] = False
 CUSTOM_PSO_CONFIG["save_history"] = False
-CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 0.0001 # antes estaba en 1e-3, otro es 1e-4
+CUSTOM_PSO_CONFIG["relative_gap_threshold"] = 1e-4 # antes estaba en 1e-3, otro es 1e-4
 
 
 # ============================================================
