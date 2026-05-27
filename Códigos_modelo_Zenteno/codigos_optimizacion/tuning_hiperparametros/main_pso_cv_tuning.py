@@ -1,0 +1,69 @@
+"""
+main_pso_cv_tuning.py
+
+Script para ejecutar la búsqueda de hiperparámetros del PSO utilizando validación cruzada.
+Requiere que el módulo `pso_cv_tuning` esté en el mismo directorio o en el PYTHONPATH.
+El script define una función `main()` que configura los parámetros de búsqueda y llama a la función `run_cv_hyperparameter_search` del módulo `pso_cv_tuning`.
+El script también maneja la creación de un directorio de salida con un timestamp para almacenar los resultados de la búsqueda. Se pueden ajustar las opciones de hiperparámetros 
+y la configuración del PSO según sea necesario.
+"""
+
+import os
+import sys
+import time
+
+CURRENT_DIR = os.path.dirname(__file__)
+PROJECT_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", ".."))
+if PROJECT_DIR not in sys.path:
+    sys.path.insert(0, PROJECT_DIR)
+
+from pymoo_opt import MODEL_2264, PSO_CONFIG
+from pso_cv_tuning import run_cv_hyperparameter_search
+
+
+def main():
+    paths = [
+        r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 24 LOU estanque 54.xlsx",
+        r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\SY\100.000 L\Data SY 24 LOU+VAL+FN estanque 36.xlsx",
+        r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\ME\100.000 L\Data ME 24 QAGUA estanque 54.xlsx",
+        r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CA\100.000 L\Data CA 25 F.N. estanque 68.xlsx",
+        r"C:\Users\p-mfolch\Documents\Proyecto_Tintos_CyT\Datos_industriales\CS\100.000 L\Data CS 25 LOU estanque 61.xlsx",
+    ]
+
+    # c1_options = [1.3, 1.5, 1.7]
+    # c2_options = [1.3, 1.5, 1.7]
+    # w_options = [0.5, 0.7, 0.9]
+    # pop_size_options = [20, 25, 30]
+
+    c1_options = [1.5]
+    c2_options = [1.5, 1.7]
+    w_options = [0.7]
+    pop_size_options = [25]
+
+    base_pso_config = PSO_CONFIG.copy()
+    base_pso_config["seed"] = 123
+    base_pso_config["verbose"] = False
+    base_pso_config["save_history"] = False
+    base_pso_config["epoch"] = 1000
+    base_pso_config["relative_gap_threshold"] = 0.01
+
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    output_dir = os.path.join(CURRENT_DIR, f"resultados_cv_pso_{timestamp}")
+
+    run_cv_hyperparameter_search(
+        paths=paths,
+        c1_options=c1_options,
+        c2_options=c2_options,
+        w_options=w_options,
+        pop_size_options=pop_size_options,
+        output_dir=output_dir,
+        model_structure=MODEL_2264,
+        base_pso_config=base_pso_config,
+        t_muestreo=3.0,
+        n_workers=6,
+        parallel=True,
+    )
+
+
+if __name__ == "__main__":
+    main()
