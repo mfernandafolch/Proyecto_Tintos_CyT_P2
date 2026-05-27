@@ -1,3 +1,12 @@
+"""
+main_procesamiento_y_simulacion.py
+
+Este script realiza el procesamiento de datos experimentales y la simulación 
+del modelo de fermentación de Coleman, utilizando los datos de archivos Excel. 
+Se generan gráficos comparando las simulaciones con los datos experimentales.
+"""
+
+
 from simulacion_coleman import (
     simulate_system_from_path,
     plot_simulation,

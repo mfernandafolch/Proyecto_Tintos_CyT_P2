@@ -1,6 +1,8 @@
 """
+main_plot_uncertainty.py
+
 Validación con incertidumbre Monte Carlo para:
-1) Azúcares totales S
+1) Azúcares S
 2) Etanol E
 
 Cada figura tiene 4 subplots, uno por cada dataset de validación.

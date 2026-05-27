@@ -10,11 +10,12 @@ Resumen:
 
 Contenido de la carpeta
 
-- `main2_opt_pso.py` — prueba/ejecución con PSO.
-- `main2_opt.py` — script de prueba general (ajustes aleatorios / comparativos).
-- `max_prueba_opt.py` — pruebas para funciones objetivo con máximo buscado.
-- `prueba_opt.py` — script de pruebas básicas y ejemplos mínimos.
-- `pso_opt.py` — implementación / experimento con PSO.
+- `main2_opt_pso.py`: prueba/ejecución con PSO.
+- `main2_opt.py`: script de prueba general (ajustes aleatorios / comparativos).
+- `max_prueba_opt.py`: pruebas para funciones objetivo con máximo buscado.
+- `prueba_opt.py`: script de pruebas básicas y ejemplos mínimos.
+- `pso_opt.py`: implementación / experimento con PSO.
+- `Resulados optimizadores.xlsx`: recolección de resultados obtenidos con pruebas de diferentes algoritmos y optimizadores. 
 
 Requisitos
 

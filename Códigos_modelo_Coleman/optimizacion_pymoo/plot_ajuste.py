@@ -1,3 +1,19 @@
+"""
+plot_ajuste.py
+Módulo para graficar el ajuste del modelo Coleman a los datos
+
+Este módulo carga los datasets seleccionados, simula el modelo con un set puntual de parámetros 
+(definidos en FREE_PARAMS y FIXED_PARAMS), y genera gráficos comparando las concentraciones de 
+azúcares y etanol simulados vs experimentales.
+
+Cada gráfico muestra:
+- Azúcares simulados (línea continua)
+- Azúcares experimentales (puntos)
+- Etanol simulado (línea discontinua)
+- Etanol final experimental (punto destacado)
+Además, se calcula un costo gráfico basado en la diferencia entre simulación y datos experimentales.
+"""
+
 import os
 import sys
 import textwrap

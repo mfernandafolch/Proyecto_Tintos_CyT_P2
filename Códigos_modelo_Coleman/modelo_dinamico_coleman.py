@@ -1,7 +1,7 @@
 """
 modelo_dinamico_coleman.py
 
-Modelo dinámico de fermentación tipo Coleman/Cramer adaptado.
+Modelo dinámico de fermentación tipo Coleman (2007) adaptado.
 
 Estados: x = [X, N, S, E]
 
@@ -20,9 +20,9 @@ donde:
 Parámetros libres: p = [mu0, kd0, betaS0, Kn, Yxn, Yes, Ks]
 
 donde:
-    mu0    : factor multiplicativo de mu_max(T)
-    kd0    : factor multiplicativo de k'_d(T)
-    betaS0 : factor multiplicativo de betaSmax(T)
+    mu0    : factor multiplicativo de mu_max(T) (fijado en 1)
+    kd0    : factor multiplicativo de k'_d(T) (fijado en 1)
+    betaS0 : factor multiplicativo de betaSmax(T) (fijado en 1)
     Kn     : constante Monod de nitrógeno [g/L]
     Yxn    : rendimiento biomasa/nitrógeno [gX/gN]
     Yes    : rendimiento etanol/azúcar [gE/gS]

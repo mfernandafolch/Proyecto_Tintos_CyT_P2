@@ -1,7 +1,7 @@
 """
 modelo_dinamico.py
 
-Construcción del modelo dinámico (EDOs) de fermentación tipo Zenteno y su evaluación con entradas variables.
+Construcción del modelo dinámico (EDOs) de fermentación Zenteno (2010) y su evaluación con entradas variables.
 
 Incluye:
 - Utilidades numéricas para estabilidad y robustez: safe_div, safe_exp, clamp, _real_pos.

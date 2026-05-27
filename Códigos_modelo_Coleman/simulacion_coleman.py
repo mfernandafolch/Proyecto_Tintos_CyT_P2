@@ -1,7 +1,7 @@
 """
 simulacion_coleman.py
 
-Funciones para ejecutar simulaciones de fermentación usando el modelo Coleman/Cramer
+Funciones para ejecutar simulaciones de fermentación usando el modelo Coleman (2007)
 adaptado a 4 estados.
 
 Estados del modelo:

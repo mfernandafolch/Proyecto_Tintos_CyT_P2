@@ -1,3 +1,11 @@
+"""
+plot_data.py
+
+Script para graficar los datos procesados del Excel de un proceso, mostrando las temperaturas y 
+la concentración de azúcar a lo largo del tiempo, con un segundo eje para la densidad. 
+Además, se incluyen las condiciones iniciales en el pie de la gráfica.
+"""
+
 from procesamiento_datos import process_excel
 import matplotlib.pyplot as plt
 

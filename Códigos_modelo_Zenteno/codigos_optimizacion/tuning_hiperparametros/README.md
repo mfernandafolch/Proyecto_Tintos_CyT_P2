@@ -10,9 +10,9 @@ Propósito
 
 Archivos principales
 
-- `main_pso_cv_tuning.py` — orquestador para pruebas de PSO con validación cruzada y guardado de resultados.
-- `pso_cv_tuning.py` — implementación de la búsqueda/validación de hiperparámetros para PSO.
-- `pymoo_opt.py` — experimentos con `pymoo` (si se usa para optimización o tuning).
+- `main_pso_cv_tuning.py`: orquestador para pruebas de PSO con validación cruzada y guardado de resultados.
+- `pso_cv_tuning.py`: implementación de la búsqueda/validación de hiperparámetros para PSO.
+- `pymoo_opt.py`: código del optimizador de los datos con PSO de `pymoo` (si se usa para optimización o tuning).
 
 Carpetas de resultados
 

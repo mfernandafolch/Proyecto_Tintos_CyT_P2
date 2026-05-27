@@ -1,12 +1,19 @@
 """
-Validación cruzada aleatoria repetida con pymoo PSO
-- 20 datasets CS de 100.000 L
-- Se separan 4 datasets una sola vez al inicio
-- En cada iteración: 5 ajuste usando solo los 12 restantes
-- Sin repetir combinaciones de ajuste dentro de la misma corrida
-- Ejecución paralela con workers
-- Guardado final a Excel
-- Seed fija solo para PSO, no para los splits aleatorios
+main_ajustes_random.py
+
+Calibración de parámetros con validación cruzada aleatoria repetida usando PSO de pymoo, usando el modelo Coleman.
+En este enfoque, se generan múltiples splits aleatorios de los datasets disponibles, 
+donde cada split define un conjunto de entrenamiento (ajuste) y un conjunto separado (validación). 
+Para cada split, se ejecuta el proceso de calibración con PSO utilizando solo los datasets 
+del conjunto de entrenamiento. 
+
+Contiene:
+1) Configuración general de la validación cruzada y PSO.
+2) Definición de los datasets a usar (100.000 L).
+3) Funciones utilitarias para el manejo de datos, generación de splits, cálculo de costos y guardado de resultados.
+4) Función worker que ejecuta el proceso de calibración para un split dado.
+5) Función main que orquesta todo el proceso, ejecutando los splits en paralelo y guardando los resultados en Excel.
+
 """
 
 import os

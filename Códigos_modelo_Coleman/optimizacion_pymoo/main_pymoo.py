@@ -1,3 +1,10 @@
+"""
+main_pymoo.py
+Script principal para ejecutar la optimización de parámetros del modelo Coleman
+adaptado a 4 estados, utilizando PSO (pymoo) y los datos experimentales disponibles.
+
+"""
+
 import os
 import sys
 import time

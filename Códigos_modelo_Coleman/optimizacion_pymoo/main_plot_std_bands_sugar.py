@@ -1,5 +1,8 @@
 """
+main_plot_std_bands_sugar.py
+
 Validación de azúcares con bandas deterministas usando desviación estándar.
+Adaptado al modelo Coleman.
 
 Este script reemplaza las simulaciones Monte Carlo por simulaciones puntuales:
 - curva central: mediana de los parámetros libres
@@ -11,7 +14,7 @@ Se generan dos figuras:
 2) Bandas con ±2 desviaciones estándar
 
 En cada figura se superponen los 4 datasets de validación definidos en
-VALIDATION_DATASET_IDS. Se grafica azúcar total S = G + F y etanol final/correspondiente.
+VALIDATION_DATASET_IDS. Se grafica azúcar S y etanol final/correspondiente.
 
 Convención de errores:
 - Azúcar: RMSE en g/L y NRMSE en %.
