@@ -9,6 +9,7 @@ Estructura y propósito
 - `main_pymoo.py`: ejecuciones con PSO de`pymoo` para optimización/ajuste (si está presente y configurado).
 - `main_plot_std_bands_sugar.py`: genera gráficos de bandas de desviación estándar (validación visual de ajuste sobre datos de azúcar/serie temporal correspondiente).
 - `main_plot_uncertainty.py`: genera gráficos de incertidumbre con simulaciones de Monte Carlo de los parámetros en el rango de variabilidad de las predicciones. 
+- `zenteno_mc_halo_bands.py`: genera gráficos de validación predictiva mediante simulaciones Monte Carlo. Ocupa bandas de incertidumbre y visualizaciones de densidad de trayectorias simuladas para perfiles de azúcares y etanol en procesos industriales.
 - `plot_ajuste.py`: utilidades para visualizar ajustes (ajustes vs datos observados).
 
 

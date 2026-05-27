@@ -13,6 +13,7 @@ Archivos principales
 - `plot_ajuste.py`: utilidades para visualizar ajustes (predicción vs datos observados).
 - `main_plot_std_bands_sugar.py`: genera gráficas de bandas de desviación estándar (validación visual sobre series de azúcar u otras señales relevantes).
 - `main_plot_uncertainty.py`: gráficos de incertidumbre/variabilidad (ensambles, bandas, análisis de sensibilidad).
+- `coleman_mc_halo_bands.py`: genera gráficos de validación predictiva mediante simulaciones Monte Carlo. Ocupa bandas de incertidumbre y visualizaciones de densidad de trayectorias simuladas para perfiles de azúcares y etanol en procesos industriales.
 - `resultados_buenos/`, `otros_resultados/`: carpetas con salidas de experimentos (mejores runs y resultados complementarios).
 
 Requisitos

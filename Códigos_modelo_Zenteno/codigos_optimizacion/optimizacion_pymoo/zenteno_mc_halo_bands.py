@@ -1,5 +1,5 @@
 """
-main_plot_uncertainty.py
+zenteno_mc_halo_bands.py
 
 Validación con incertidumbre Monte Carlo para el modelo original de Zenteno:
 1) Azúcares totales S = G + F
@@ -9,7 +9,7 @@ Cada figura tiene 4 subplots, uno por cada dataset de validación.
 
 - Curva negra: simulación con mediana de los parámetros.
 - Todas las simulaciones Monte Carlo: líneas tenues superpuestas.
-- Banda roja: envolvente entre la simulación mínima y la máxima.
+- Halo rojo tenue: banda alrededor de cada simulación Monte Carlo; las zonas con mayor superposición se ven más intensas.
 - Puntos azules: datos experimentales.
 
 IMPORTANTE:
@@ -542,22 +542,90 @@ def run_uncertainty_simulations(dataset, n_mc, n_workers=1):
 # PLOTS
 # ============================================================
 
-def plot_all_mc_runs(ax, t_days, runs, color="#c04a4a"):
-    for run in runs:
-        ax.plot(t_days, run, color=color, alpha=0.10, linewidth=0.9, zorder=1)
+# ------------------------------------------------------------
+# Configuración visual del halo Monte Carlo
+# ------------------------------------------------------------
+# La idea NO es construir bandas por percentiles.
+# En cambio, cada trayectoria Monte Carlo se dibuja con:
+#   1) una banda muy tenue alrededor de la línea, y
+#   2) la línea Monte Carlo encima.
+# Como todas las bandas se superponen, la zona por donde pasan más
+# simulaciones se oscurece naturalmente.
+
+MC_LINE_COLOR = "#c04a4a"
+MC_LINE_ALPHA = 0.15
+MC_LINE_WIDTH = 0.90
+
+MC_HALO_COLOR = "#ff4d4d"
+MC_HALO_ALPHA = 0.06
+MC_HALO_WIDTH_FRACTION = 0.05
+MC_HALO_MIN_WIDTH = 1e-6
 
 
-def add_min_max_envelope(ax, t_days, bands, label_first=True):
-    ax.fill_between(
-        t_days,
-        bands["min"],
-        bands["max"],
-        color="#d45d5d",
-        alpha=0.24,
-        linewidth=0,
-        label="Envolvente min-max" if label_first else None,
-        zorder=0,
-    )
+def compute_halo_half_width(runs, width_fraction=MC_HALO_WIDTH_FRACTION):
+    """
+    Calcula el semi-ancho vertical del halo para las trayectorias MC.
+
+    No usa percentiles. Solo toma el rango global de las simulaciones y
+    define una fracción pequeña de ese rango como grosor visual del halo.
+    """
+
+    runs = np.asarray(runs, dtype=float)
+    finite_values = runs[np.isfinite(runs)]
+
+    if finite_values.size == 0:
+        return MC_HALO_MIN_WIDTH
+
+    y_range = float(np.nanmax(finite_values) - np.nanmin(finite_values))
+
+    if not np.isfinite(y_range) or y_range <= 0:
+        typical_scale = max(abs(float(np.nanmean(finite_values))), 1.0)
+        return max(width_fraction * typical_scale, MC_HALO_MIN_WIDTH)
+
+    return max(width_fraction * y_range, MC_HALO_MIN_WIDTH)
+
+
+def plot_mc_runs_with_halo(
+    ax,
+    t_days,
+    runs,
+    color=MC_LINE_COLOR,
+    halo_color=MC_HALO_COLOR,
+    label_first=True,
+):
+    """
+    Dibuja las simulaciones Monte Carlo con un halo tenue alrededor.
+
+    La acumulación visual aparece porque los halos de muchas trayectorias
+    se superponen: donde pasan más curvas, el rojo se ve más intenso.
+    """
+
+    runs = np.asarray(runs, dtype=float)
+    halo_half_width = compute_halo_half_width(runs)
+
+    for i, run in enumerate(runs):
+        run = np.asarray(run, dtype=float)
+
+        ax.fill_between(
+            t_days,
+            run - halo_half_width,
+            run + halo_half_width,
+            color=halo_color,
+            alpha=MC_HALO_ALPHA,
+            linewidth=0,
+            label="Halo de simulaciones Monte Carlo" if (label_first and i == 0) else None,
+            zorder=0,
+        )
+
+        ax.plot(
+            t_days,
+            run,
+            color=color,
+            alpha=MC_LINE_ALPHA,
+            linewidth=MC_LINE_WIDTH,
+            label="Simulaciones Monte Carlo" if (label_first and i == 0) else None,
+            zorder=1,
+        )
 
 
 def create_2x2_axes(figsize=(16, 10.8)):
@@ -574,8 +642,7 @@ def plot_sugar_results(datasets, results):
         sugar_exp = np.asarray(dataset["sugars_profile"], dtype=float)
         valid_exp = np.isfinite(t_exp_days) & np.isfinite(sugar_exp)
 
-        plot_all_mc_runs(ax, t_sim_days, res["sugar_runs"])
-        add_min_max_envelope(ax, t_sim_days, res["sugar_min_max_bands"], label_first=(idx == 0))
+        plot_mc_runs_with_halo(ax, t_sim_days, res["sugar_runs"], label_first=(idx == 0))
 
         ax.plot(
             t_sim_days,
@@ -611,7 +678,7 @@ def plot_sugar_results(datasets, results):
             f"Muestreo: ±{MC_STD_WINDOW}σ"
         )
 
-        ax.text(0.04, 0.55, text_box, transform=ax.transAxes, fontsize=8.0,
+        ax.text(0.04, 0.55, text_box, transform=ax.transAxes, fontsize=10.0,
                 va="top", ha="left", bbox=dict(boxstyle="round", facecolor="white", alpha=0.88))
 
         ax.set_title(
@@ -629,7 +696,7 @@ def plot_sugar_results(datasets, results):
     fig.suptitle(
         "Validación predictiva del consumo de azúcares - modelo Zenteno\n"
         "Curva central con mediana de parámetros; 38 datos por parámetro\n"
-        f"Bandas con {N_MONTE_CARLO} muestras Monte Carlo "
+        f"Halo con {N_MONTE_CARLO} muestras Monte Carlo "
         f"(muestreo truncado en mediana ±{MC_STD_WINDOW}σ)",
         fontsize=12,
         y=0.985,
@@ -648,8 +715,7 @@ def plot_ethanol_results(datasets, results):
         et_exp = float(dataset["Et_final_exp"])
         t_final_exp_days = float(np.nanmax(np.asarray(dataset["t_rel"], dtype=float))) / 24.0
 
-        plot_all_mc_runs(ax, t_sim_days, res["ethanol_runs"])
-        add_min_max_envelope(ax, t_sim_days, res["ethanol_min_max_bands"], label_first=(idx == 0))
+        plot_mc_runs_with_halo(ax, t_sim_days, res["ethanol_runs"], label_first=(idx == 0))
 
         ax.plot(
             t_sim_days,
@@ -677,7 +743,7 @@ def plot_ethanol_results(datasets, results):
             f"Muestreo: ±{MC_STD_WINDOW}σ"
         )
 
-        ax.text(0.04, 0.94, text_box, transform=ax.transAxes, fontsize=8.5,
+        ax.text(0.04, 0.94, text_box, transform=ax.transAxes, fontsize=10.0,
                 va="top", ha="left", bbox=dict(boxstyle="round", facecolor="white", alpha=0.88))
 
         ax.set_title(
@@ -695,7 +761,7 @@ def plot_ethanol_results(datasets, results):
     fig.suptitle(
         "Validación predictiva de etanol final - modelo Zenteno\n"
         "Curva central con mediana de parámetros; 38 datos por parámetro\n"
-        f"Bandas con {N_MONTE_CARLO} muestras Monte Carlo "
+        f"Halo con {N_MONTE_CARLO} muestras Monte Carlo "
         f"(muestreo truncado en mediana ±{MC_STD_WINDOW}σ)",
         fontsize=12,
         y=0.985,

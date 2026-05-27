@@ -1,8 +1,8 @@
 """
 main_plot_uncertainty.py
 
-Validación con incertidumbre Monte Carlo para:
-1) Azúcares S
+Validación con incertidumbre Monte Carlo para el modelo original de Coleman:
+1) Azúcares totales S
 2) Etanol E
 
 Cada figura tiene 4 subplots, uno por cada dataset de validación.
@@ -659,18 +659,11 @@ def plot_sugar_results(datasets, results):
     for idx, (ax, dataset, res) in enumerate(zip(axes, datasets, results)):
         t_sim_days = np.asarray(res["time"], dtype=float) / 24.0
         t_exp_days = np.asarray(dataset["t_rel"], dtype=float) / 24.0
-
         sugar_exp = np.asarray(dataset["sugars_profile"], dtype=float)
         valid_exp = np.isfinite(t_exp_days) & np.isfinite(sugar_exp)
 
         plot_all_mc_runs(ax, t_sim_days, res["sugar_runs"])
-
-        add_min_max_envelope(
-            ax,
-            t_sim_days,
-            res["sugar_min_max_bands"],
-            label_first=(idx == 0)
-        )
+        add_min_max_envelope(ax, t_sim_days, res["sugar_min_max_bands"], label_first=(idx == 0))
 
         ax.plot(
             t_sim_days,
@@ -693,70 +686,45 @@ def plot_sugar_results(datasets, results):
             color="tab:blue",
             marker=DATASET_MARKERS[idx],
             zorder=3,
-            label="Azúcares experimentales"
+            label="Azúcares experimentales",
         )
 
         metrics = res["sugar_metrics"]
         costs = res["validation_costs"]
-
         text_box = (
             f"RMSE: {metrics['rmse']:.2f} g/L\n"
             f"NRMSE: {100 * metrics['nrmse']:.2f}%\n"
+            f"Cobertura: {metrics['coverage']:.1f}%\n"
             f"Costo azúcar: {costs['validation_cost_sugar']:.4f}\n"
-            f"Muestreo: ±{MC_STD_WINDOW}σ\n"
+            f"Muestreo: ±{MC_STD_WINDOW}σ"
         )
 
-        ax.text(
-            0.04,
-            0.55,
-            text_box,
-            transform=ax.transAxes,
-            fontsize=8.0,
-            verticalalignment="top",
-            horizontalalignment="left",
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.88)
-        )
+        ax.text(0.04, 0.55, text_box, transform=ax.transAxes, fontsize=8.0,
+                va="top", ha="left", bbox=dict(boxstyle="round", facecolor="white", alpha=0.88))
 
         ax.set_title(
-            f"{textwrap.fill(clean_dataset_name(dataset['name']), width=TITLE_WRAP_WIDTH)}",            fontsize=10,
-            pad=12
+            f"Set {dataset['id']:02d} - {textwrap.fill(clean_dataset_name(dataset['name']), width=TITLE_WRAP_WIDTH)}",
+            # f"Costo validación total: {costs['validation_cost_total']:.6f}",
+            fontsize=10,
+            pad=12,
         )
-
         ax.set_xlabel("Tiempo (días)", labelpad=8)
         ax.set_ylabel("Azúcares, S (g/L)", labelpad=8)
         ax.grid(True, alpha=0.3)
 
     handles, labels = axes[0].get_legend_handles_labels()
     unique = dict(zip(labels, handles))
-
     fig.suptitle(
         "Validación predictiva del consumo de azúcares - modelo Coleman\n"
         "Curva central con mediana de parámetros; 20 datos por parámetro\n"
         f"Bandas con {N_MONTE_CARLO} muestras Monte Carlo "
         f"(muestreo truncado en mediana ±{MC_STD_WINDOW}σ)",
-        fontsize=15,
-        y=0.985
+        fontsize=12,
+        y=0.985,
     )
-
-    fig.legend(
-        unique.values(),
-        unique.keys(),
-        loc="upper center",
-        ncol=5,
-        bbox_to_anchor=(0.5, 0.905),
-        fontsize=9.5,
-        frameon=True
-    )
-
-    fig.subplots_adjust(
-        left=0.07,
-        right=0.98,
-        bottom=0.07,
-        top=0.80,
-        hspace=0.55,
-        wspace=0.25
-    )
-
+    fig.legend(unique.values(), unique.keys(), loc="upper center", ncol=5,
+               bbox_to_anchor=(0.5, 0.905), fontsize=9.5, frameon=True)
+    fig.subplots_adjust(left=0.07, right=0.98, bottom=0.07, top=0.80, hspace=0.4, wspace=0.194)
     plt.show()
 
 
@@ -769,18 +737,11 @@ def plot_ethanol_results(datasets, results):
 
     for idx, (ax, dataset, res) in enumerate(zip(axes, datasets, results)):
         t_sim_days = np.asarray(res["time"], dtype=float) / 24.0
-
         et_exp = float(dataset["Et_final_exp"])
         t_final_exp_days = float(np.nanmax(np.asarray(dataset["t_rel"], dtype=float))) / 24.0
 
         plot_all_mc_runs(ax, t_sim_days, res["ethanol_runs"])
-
-        add_min_max_envelope(
-            ax,
-            t_sim_days,
-            res["ethanol_min_max_bands"],
-            label_first=(idx == 0)
-        )
+        add_min_max_envelope(ax, t_sim_days, res["ethanol_min_max_bands"], label_first=(idx == 0))
 
         ax.plot(
             t_sim_days,
@@ -796,78 +757,44 @@ def plot_ethanol_results(datasets, results):
             zorder=4,
         )
 
-        ax.scatter(
-            [t_final_exp_days],
-            [et_exp],
-            s=50,
-            color="tab:blue",
-            marker=DATASET_MARKERS[idx],
-            zorder=4,
-            label="Etanol experimental final"
-        )
+        ax.scatter([t_final_exp_days], [et_exp], s=50, color="tab:blue",
+                   marker=DATASET_MARKERS[idx], zorder=4, label="Etanol experimental final")
 
         metrics = res["ethanol_metrics"]
         costs = res["validation_costs"]
-
         text_box = (
             f"Error abs.: {metrics['abs_error']:.2f} g/L\n"
             f"Error rel.: {100 * metrics['relative_error']:.2f}%\n"
-            f"Costo etanol: {costs['validation_cost_ethanol']:.4f}"
-            f"\nMuestreo: ±{MC_STD_WINDOW}σ"
+            f"Costo etanol: {costs['validation_cost_ethanol']:.4f}\n"
+            f"Muestreo: ±{MC_STD_WINDOW}σ"
         )
 
-        ax.text(
-            0.04,
-            0.94,
-            text_box,
-            transform=ax.transAxes,
-            fontsize=8.5,
-            verticalalignment="top",
-            horizontalalignment="left",
-            bbox=dict(boxstyle="round", facecolor="white", alpha=0.88)
-        )
+        ax.text(0.04, 0.94, text_box, transform=ax.transAxes, fontsize=8.5,
+                va="top", ha="left", bbox=dict(boxstyle="round", facecolor="white", alpha=0.88))
 
         ax.set_title(
-            f"{textwrap.fill(clean_dataset_name(dataset['name']), width=TITLE_WRAP_WIDTH)}",
+            f"Set {dataset['id']:02d} - {textwrap.fill(clean_dataset_name(dataset['name']), width=TITLE_WRAP_WIDTH)}",
+            # f"Costo validación total: {costs['validation_cost_total']:.6f}",
             fontsize=10,
-            pad=12
+            pad=12,
         )
-
         ax.set_xlabel("Tiempo (días)", labelpad=8)
         ax.set_ylabel("Etanol, E (g/L)", labelpad=8)
         ax.grid(True, alpha=0.3)
 
     handles, labels = axes[0].get_legend_handles_labels()
     unique = dict(zip(labels, handles))
-
     fig.suptitle(
         "Validación predictiva de etanol final - modelo Coleman\n"
         "Curva central con mediana de parámetros; 20 datos por parámetro\n"
         f"Bandas con {N_MONTE_CARLO} muestras Monte Carlo "
         f"(muestreo truncado en mediana ±{MC_STD_WINDOW}σ)",
-        fontsize=15,
-        y=0.985
+        fontsize=12,
+        y=0.985,
     )
-
-    fig.legend(
-        unique.values(),
-        unique.keys(),
-        loc="upper center",
-        ncol=5,
-        bbox_to_anchor=(0.5, 0.905),
-        fontsize=9.5,
-        frameon=True
-    )
-
-    fig.subplots_adjust(
-        left=0.07,
-        right=0.98,
-        bottom=0.07,
-        top=0.80,
-        hspace=0.55,
-        wspace=0.25
-    )
-
+    fig.legend(unique.values(), unique.keys(), loc="upper center", ncol=5,
+               bbox_to_anchor=(0.5, 0.905), fontsize=9.5, frameon=True)
+    fig.subplots_adjust(left=0.07, right=0.98, bottom=0.07, top=0.80, hspace=0.4, wspace=0.194)
     plt.show()
 
 
