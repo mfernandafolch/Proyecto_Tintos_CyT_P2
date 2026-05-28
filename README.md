@@ -1,60 +1,90 @@
-# Estimación de parámetros para fermentaciones de vino tinto a partir de datos industriales
+# Proyecto Tintos CyT
 
-## Descripción del proyecto
+Repositorio de trabajo para el procesamiento de datos industriales de fermentación y la simulación y ajuste de modelos dinámicos asociados al proceso de vino tinto. Este proyecto se enmarca en una práctica profesional realizada entre enero y mayo del 2026.
 
-Este repositorio contiene herramientas para el procesamiento de datos industriales de fermentación y la estimación de parámetros de un modelo dinámico del proceso de fermentación alcohólica.
+El proyecto organiza información real de fermentaciones industriales, la prepara para análisis y la usa como base para comparar, simular y calibrar modelos de fermentación alcohólica. A grandes rasgos, el trabajo apunta a representar variables como biomasa de levaduras, nitrógeno asimilable, azúcares y etanol bajo condiciones industriales.
 
-El objetivo del proyecto es desarrollar un flujo de trabajo que permita utilizar datos provenientes de fermentaciones industriales para ajustar los parámetros de un modelo matemático que describa la dinámica del sistema. Este modelo busca representar la evolución de variables relevantes del proceso, tales como biomasa de levaduras, nitrógeno asimilable, azúcares fermentables y etanol.
+## Qué se hizo en el proyecto
 
-A partir de este enfoque, se pretende generar una base de modelación que permita analizar el comportamiento del proceso de fermentación bajo condiciones reales de operación.
+El desarrollo del repositorio se ha enfocado en:
 
----
+- Reunir y organizar datos industriales por año, variedad y tipo de archivo;
+- Construir pipelines de extracción y preprocesamiento de datos;
+- Implementar modelos dinámicos de fermentación;
+- Correr simulaciones sobre los datos procesados;
+- Explorar estrategias de ajuste y optimización de parámetros;
+- Generar gráficos para analizar ajuste, incertidumbre y bandas de variación.
 
-## Objetivo
+## Estructura principal
 
-El propósito principal de este proyecto es construir herramientas que permitan:
+### `Códigos_modelo_Coleman/`
 
-- Procesar datos históricos de fermentaciones industriales.
-- Implementar un modelo dinámico del proceso de fermentación.
-- Ajustar los parámetros del modelo utilizando datos experimentales.
-- Evaluar la capacidad del modelo para representar el comportamiento observado en fermentaciones reales.
+Contiene la línea de trabajo asociada al modelo de Coleman.
 
----
+Incluye scripts para:
 
-## Contexto del proyecto
+- Extracción de datos industriales;
+- Procesamiento y limpieza de datos;
+- Visualización básica de series y resultados;
+- Definición del modelo dinámico Coleman;
+- Simulación del sistema;
+- Ejecución de un flujo principal de procesamiento y simulación.
 
-Este proyecto se desarrolla en el contexto de la modelación de procesos de fermentación alcohólica utilizando información proveniente de fermentaciones industriales de **Viña Concha y Toro**.
+La subcarpeta `optimizacion_pymoo/` reúne experimentos de calibración y análisis, incluyendo ajustes aleatorios, optimización con PSO de `pymoo`, gráficos de ajuste y herramientas para estudiar incertidumbre y bandas de dispersión.
 
-El trabajo se realiza utilizando datos históricos del proceso con el objetivo de integrar información experimental con modelos dinámicos que permitan mejorar la comprensión y representación del proceso de fermentación.
+### `Códigos_modelo_Zenteno/`
 
----
+Contiene la línea de trabajo asociada al modelo de Zenteno.
 
-## Estado del proyecto
+Esta carpeta agrupa:
 
-El repositorio se encuentra actualmente en desarrollo.  
-Las funcionalidades incluidas buscan sentar las bases para la simulación del modelo y la posterior estimación de parámetros a partir de datos industriales.
+- Scripts de extracción y procesamiento de datos;
+- El modelo dinámico;
+- Scripts y notebook de simulación;
+- Un flujo principal de procesamiento y simulación;
+- Una carpeta de experimentos de optimización y ajuste.
 
-La estructura y el contenido del código pueden seguir evolucionando a medida que avance el desarrollo del proyecto.
+Dentro de `codigos_optimizacion/` se concentran pruebas con optimizadores, búsqueda de hiperparámetros, comparaciones entre enfoques y experimentos basados en PSO de `pymoo` y otros métodos de ajuste.
 
----
+### `Datos_industriales/`
 
-## Requisitos
+Contiene los datos industriales usados por el proyecto.
 
-Para ejecutar el código se recomienda utilizar **Python 3.10 o superior**.
+La organización principal es:
 
-Las librerías utilizadas incluyen herramientas estándar para:
+- Por año, en carpetas como `2024/` y `2025/`;
+- Por variedad de uva, en carpetas como `CA/`, `CS/`, `MA/`, `ME/` y `SY/`;
+- Por lote o conjunto de mediciones dentro de cada variedad.
 
-- manejo de datos
-- simulación numérica
-- resolución de ecuaciones diferenciales
-- visualización de resultados
+Esta carpeta actúa como la fuente de datos brutos para el preprocesamiento, la simulación y la calibración de los modelos.
 
----
+## Flujo general de trabajo
+
+1. Se cargan los datos industriales desde `Datos_industriales/`.
+2. Se limpian, transforman y estructuran para su uso en simulación.
+3. Se ejecutan los modelos dinámicos desde las carpetas de Coleman o Zenteno.
+4. Se comparan resultados observados y simulados.
+5. Se exploran ajustes de parámetros y análisis de incertidumbre.
+
+
+## Requisitos generales
+
+Se recomienda usar **Python 3.10 o superior**.
+
+Dependiendo de la carpeta o script, pueden requerirse bibliotecas como:
+
+- `numpy`
+- `pandas`
+- `scipy`
+- `matplotlib`
+- `pymoo`
+- `pyswarms`
+- `scikit-learn`
 
 ## Autor
 
-María Fernanda Folch  
-Ingeniería Civil en Biotecnología  
+María Fernanda Folch Díaz 
+Ingeniera Civil en Biotecnología, mención Procesos 
 Pontificia Universidad Católica de Chile  
 
 Proyecto desarrollado durante práctica profesional en **Centro de Investigación e Innovación (CII), Viña Concha y Toro**.
