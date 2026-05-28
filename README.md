@@ -83,8 +83,10 @@ Dependiendo de la carpeta o script, pueden requerirse bibliotecas como:
 
 ## Autor
 
-María Fernanda Folch Díaz 
+María Fernanda Folch Díaz
+
 Ingeniera Civil en Biotecnología, mención Procesos 
+
 Pontificia Universidad Católica de Chile  
 
 Proyecto desarrollado durante práctica profesional en **Centro de Investigación e Innovación (CII), Viña Concha y Toro**.
